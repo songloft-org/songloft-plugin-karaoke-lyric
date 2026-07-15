@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/songloft-org/plugin-toolchain/main/packages/plugin-builder/src/manifest/manifest.schema.json",
+  "name": "歌词刮削",
+  "version": "2026.7.14",
+  "description": "从 QQ音乐、酷狗、网易云、Lrclib 自动刮削歌词并关联入库",
+  "author": "songloft",
+  "homepage": "",
+  "license": "MIT",
+  "entryPath": "karaoke-lyric",
+  "main": "main.js",
+  "minHostVersion": "2.0.0",
+  "permissions": ["storage", "songs.read", "songs.write", "fs"],
+  "icon": ""
+}

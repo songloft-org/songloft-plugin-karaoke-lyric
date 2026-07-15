@@ -1,0 +1,37 @@
+import { HTTPRequest, HTTPResponse, jsonResponse } from '@songloft/plugin-sdk';
+import { SourceEngine } from '../sources/engine';
+import { parseBody } from '../utils/host_api';
+import { SOURCE_LABELS } from '../types';
+
+export function createScrapeHandler(engine: SourceEngine) {
+  return async (req: HTTPRequest): Promise<HTTPResponse> => {
+    const body = parseBody(req);
+    const title = body.title || '';
+    const artist = body.artist || '';
+    const duration = body.duration || 0;
+
+    if (!title) {
+      return jsonResponse({ error: 'title is required' }, 400);
+    }
+
+    const result = await engine.scrapeBest(title, artist, duration);
+
+    if (!result) {
+      return jsonResponse({
+        success: false,
+        message: '未找到匹配的歌词',
+      });
+    }
+
+    return jsonResponse({
+      success: true,
+      source: result.result.source,
+      source_label: SOURCE_LABELS[result.result.source] || result.result.source,
+      score: result.result.score,
+      lyric: result.lyrics.lyric,
+      tlyric: result.lyrics.tlyric,
+      rlyric: result.lyrics.rlyric,
+      lxlyric: result.lyrics.lxlyric,
+    });
+  };
+}
