@@ -2,102 +2,209 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>歌词刮削</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>逐字歌词</title>
 <style>
+:root { --primary: #007aff; --primary-hover: #0056b3; --success: #28a745; --danger: #dc3545; --gray: #6c757d; --bg: #f5f5f5; --card: #fff; --text: #333; --text-2: #666; --text-3: #999; --border: #eee; --tab-h: 48px; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
-.container { max-width: 1200px; margin: 0 auto; }
-h1 { font-size: 24px; margin-bottom: 20px; color: #1a1a1a; }
-.card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-th { font-weight: 600; color: #666; background: #fafafa; }
-tr:hover { background: #f8f9fa; }
-.btn { display: inline-block; padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-.btn-primary { background: #007aff; color: #fff; }
-.btn-primary:hover { background: #0056b3; }
-.btn-secondary { background: #6c757d; color: #fff; }
-.btn-secondary:hover { background: #545b62; }
-.btn-success { background: #28a745; color: #fff; }
-.btn-success:hover { background: #1e7e34; }
-.btn-sm { padding: 4px 10px; font-size: 12px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 0; }
+.container { max-width: 1200px; margin: 0 auto; padding: 16px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+.page-title { font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #1a1a1a; padding: 0 16px; padding-top: 12px; }
+.card { background: var(--card); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; overflow: hidden; }
+.card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 500; }
+.card-body { padding: 12px 16px; }
+
+/* Desktop tabs */
+.tab-header { display: flex; border-bottom: 2px solid #e9ecef; margin-bottom: 16px; background: var(--card); border-radius: 10px 10px 0 0; }
+.tab-btn { padding: 12px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-2); font-size: 14px; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; white-space: nowrap; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+/* Bottom tab bar (mobile) */
+.tab-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: calc(56px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--card); border-top: 1px solid var(--border); z-index: 100; justify-content: space-around; align-items: center; }
+.tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; border: none; background: transparent; color: var(--text-3); font-size: 11px; font-family: inherit; cursor: pointer; min-height: 44px; justify-content: center; }
+.tab-item .tab-icon { font-size: 22px; line-height: 1; }
+.tab-item.active { color: var(--primary); font-weight: 500; }
+
+/* Song table */
+.song-table { width: 100%; border-collapse: collapse; }
+.song-table th, .song-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+.song-table th { font-weight: 600; color: var(--text-2); background: #fafafa; font-size: 13px; }
+.song-table tr:hover { background: #f8f9fa; }
+.song-table .col-check { width: 32px; }
+.song-table .col-dur { width: 60px; color: var(--text-2); }
+.song-table .col-status { width: 80px; }
+.song-table .col-action { width: 60px; }
+
+/* Song cards (mobile) */
+.song-card { display: none; padding: 0; }
+.song-card-header { display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--text-2); background: #fafafa; border-bottom: 1px solid var(--border); }
+.song-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.song-item:last-child { border-bottom: none; }
+.song-item-info { flex: 1; min-width: 0; }
+.song-item-title { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.song-item-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; display: flex; gap: 8px; align-items: center; }
+.song-item-action { flex-shrink: 0; }
+
+/* Search results (desktop table / mobile cards) */
+.search-results-table { display: table; width: 100%; border-collapse: collapse; }
+.search-results-table th, .search-results-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+.search-results-table th { font-weight: 600; color: var(--text-2); background: #fafafa; font-size: 12px; }
+
+.search-result-cards { display: none; }
+.search-result-card-header { display: none; padding: 8px 0; font-size: 12px; font-weight: 600; color: var(--text-2); background: #fafafa; border-bottom: 1px solid var(--border); gap: 10px; align-items: center; }
+.search-result-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.search-result-item:last-child { border-bottom: none; }
+.search-result-body { flex: 1; min-width: 0; }
+.search-result-title { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-result-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.search-result-action { flex-shrink: 0; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-family: inherit; transition: all 0.2s; min-height: 36px; white-space: nowrap; gap: 4px; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: var(--gray); color: #fff; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-sm { padding: 6px 12px; font-size: 13px; min-height: 32px; }
+.btn-xs { padding: 4px 10px; font-size: 12px; min-height: 28px; border-radius: 4px; }
+.btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
+.btn-block { width: 100%; justify-content: center; }
+
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
 .badge-green { background: #d4edda; color: #155724; }
 .badge-red { background: #f8d7da; color: #721c24; }
 .badge-gray { background: #e2e3e5; color: #383d41; }
-.progress-bar { height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; }
+
+.progress-bar { height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; width: 72px; display: inline-block; vertical-align: middle; }
 .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
-.search-box { display: flex; gap: 10px; margin-bottom: 15px; }
-.search-box input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-.source-tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; color: #fff; margin-right: 4px; }
+
+.source-tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; color: #fff; }
 .source-qm { background: #07c160; }
 .source-kg { background: #fa7412; }
 .source-ne { background: #d43c33; }
 .source-lrclib { background: #6366f1; }
-.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+
+.search-box { display: flex; gap: 8px; align-items: center; }
+.search-box input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; min-height: 40px; }
+.search-box input:focus { border-color: var(--primary); }
+
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 16px; }
 .modal.active { display: flex; }
-.modal-content { background: #fff; border-radius: 8px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
-.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
-.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-pre { background: #f8f9fa; padding: 12px; border-radius: 4px; font-size: 13px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-.pagination { display: flex; gap: 5px; justify-content: center; margin-top: 20px; }
-.pagination button { padding: 4px 10px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; }
-.pagination button.active { background: #007aff; color: #fff; border-color: #007aff; }
-.loading { text-align: center; padding: 40px; color: #999; }
-.toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 6px; color: #fff; z-index: 2000; animation: slideIn 0.3s ease; }
-.toast-success { background: #28a745; }
-.toast-error { background: #dc3545; }
+.modal-content { background: var(--card); border-radius: 12px; padding: 20px; max-width: 700px; width: 100%; max-height: 85vh; overflow-y: auto; }
+.modal-title { font-size: 17px; font-weight: 600; margin-bottom: 14px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+
+.pagination { display: flex; gap: 6px; justify-content: center; padding: 14px 16px; flex-wrap: wrap; align-items: center; }
+.pagination button { padding: 6px 12px; border: 1px solid #ddd; background: var(--card); border-radius: 6px; cursor: pointer; font-size: 13px; font-family: inherit; min-height: 36px; min-width: 36px; }
+.pagination button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.pagination .page-number { min-width: 36px; padding-inline: 8px; }
+.pagination .page-gap { padding: 0 4px; color: var(--text-3); }
+
+.loading { text-align: center; padding: 40px 16px; color: var(--text-3); font-size: 14px; }
+
+.toast { position: fixed; top: 16px; right: 16px; padding: 12px 20px; border-radius: 8px; color: #fff; z-index: 2000; animation: slideIn 0.3s ease; font-size: 14px; max-width: calc(100vw - 32px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.toast-success { background: var(--success); }
+.toast-error { background: var(--danger); }
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; }
-.tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #666; }
-.tab.active { color: #007aff; border-bottom-color: #007aff; font-weight: 600; }
+
+.header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 8px; }
+.header-bar .count { font-size: 14px; color: var(--text-2); }
+
+.scraper-form { display: flex; gap: 10px; flex-wrap: wrap; }
+.scraper-form input { flex: 1; min-width: 120px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; min-height: 40px; }
+.scraper-form input:focus { border-color: var(--primary); }
+.scraper-form .btn { flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .container { padding: 12px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  .page-title { padding: 12px 12px 0; font-size: 20px; }
+  .tab-header { display: none; }
+  .tab-bar { display: flex; }
+  .song-table { display: none; }
+  .song-card { display: block; }
+  .search-results-table { display: none; }
+  .search-result-cards { display: block; }
+  .search-box { flex-direction: column; }
+  .search-box input { width: 100%; }
+  .pagination button { font-size: 12px; min-height: 32px; }
+  .pagination .page-number { min-width: 32px; padding-inline: 6px; }
+  .page-jump { display: none !important; }
+  .scraper-form { flex-direction: column; }
+  .scraper-form input { width: 100%; }
+  .scraper-form .btn { width: 100%; }
+  .header-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .header-bar .btn { width: 100%; justify-content: center; }
+  .modal { padding: 0; align-items: flex-end; }
+  .modal-content { border-radius: 12px 12px 0 0; max-height: 85vh; margin-top: auto; }
+  .toast { left: 16px; right: 16px; text-align: center; top: auto; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); animation: slideUp 0.3s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+}
+
+@media (min-width: 769px) {
+  .song-table th, .song-table td { padding: 10px 16px; }
+  .card-body { padding: 16px 20px; }
+}
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>歌词刮削</h1>
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('songs')">歌曲列表</div>
-    <div class="tab" onclick="switchTab('scraper')">快速刮削</div>
-  </div>
 
-  <div id="songsTab">
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <span id="songCount">加载中...</span>
-        <button class="btn btn-primary btn-sm" onclick="scrapeSelected()">批量刮削选中</button>
-      </div>
-      <table>
-        <thead><tr>
-          <th style="width:30px"><input type="checkbox" onchange="toggleAll(this)"></th>
-          <th>歌曲</th>
-          <th>歌手</th>
-          <th>时长</th>
-          <th>歌词状态</th>
-          <th>操作</th>
-        </tr></thead>
-        <tbody id="songTableBody"><tr><td colspan="6" class="loading">加载中...</td></tr></tbody>
-      </table>
-      <div class="pagination" id="pagination"></div>
+<div class="page-title">歌词刮削</div>
+
+<div class="tab-header">
+  <button class="tab-btn active" onclick="switchTab('songs')">歌曲列表</button>
+  <button class="tab-btn" onclick="switchTab('scraper')">快速刮削</button>
+</div>
+
+<div id="songsTab">
+  <div class="card">
+    <div class="search-box" style="margin:12px 16px 4px;display:flex;gap:8px;align-items:center">
+      <span style="color:var(--text-3);font-size:18px">⌕</span>
+      <input id="songSearchInput" type="search" placeholder="搜索标题、歌手..." autocomplete="off" style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none;min-height:40px">
+      <button id="clearSearchBtn" onclick="clearSearch()" style="border:none;background:transparent;color:var(--text-3);font-size:20px;cursor:pointer;display:none;padding:0 4px">×</button>
     </div>
+    <div style="margin:0 16px 8px;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2)">
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none">
+        <input id="noLyricsCheck" type="checkbox" onchange="onFilterChange()" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">
+        <span>仅显示无歌曲</span>
+      </label>
+    </div>
+    <div class="list-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
+      <span class="count" id="songCount" style="font-size:14px;color:var(--text-2);font-weight:600">加载中...</span>
+      <button class="btn btn-primary btn-sm" onclick="scrapeSelected()">批量刮削选中</button>
+    </div>
+    <table class="song-table">
+      <thead><tr>
+        <th class="col-check"><input type="checkbox" onchange="toggleAll(this)"></th>
+        <th>歌曲</th>
+        <th>歌手</th>
+        <th class="col-dur">时长</th>
+        <th class="col-status">歌词</th>
+        <th class="col-action">操作</th>
+      </tr></thead>
+      <tbody id="songTableBody"><tr><td colspan="6" class="loading">加载中...</td></tr></tbody>
+    </table>
+    <div class="song-card" id="songCardBody"></div>
+    <div class="pagination" id="pagination"></div>
   </div>
+</div>
 
-  <div id="scraperTab" style="display:none">
-    <div class="card">
-      <div class="search-box">
-        <input id="scrapeTitle" placeholder="歌曲名 (必填)" />
-        <input id="scrapeArtist" placeholder="歌手" />
-        <input id="scrapeDuration" type="number" placeholder="时长(毫秒)" />
+<div id="scraperTab" style="display:none">
+  <div class="card">
+    <div class="card-header">快速刮削</div>
+    <div class="card-body">
+      <div class="scraper-form">
+        <input id="scrapeTitle" placeholder="歌曲名 (必填)">
+        <input id="scrapeArtist" placeholder="歌手">
+        <input id="scrapeDuration" type="number" placeholder="时长(毫秒)">
         <button class="btn btn-primary" onclick="quickScrape()">刮削</button>
       </div>
-      <div id="quickResult"></div>
+      <div id="quickResult" style="margin-top:12px"></div>
     </div>
   </div>
 </div>
 
-<!-- Search Results Modal -->
-<div class="modal" id="searchModal">
+<div class="modal" id="searchModal" onclick="if(event.target===this)closeModal('searchModal')">
   <div class="modal-content">
     <div class="modal-title" id="searchModalTitle">搜索结果</div>
     <div id="searchResults"></div>
@@ -107,8 +214,7 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 4px; font-size: 13px; m
   </div>
 </div>
 
-<!-- Preview Modal -->
-<div class="modal" id="previewModal">
+<div class="modal" id="previewModal" onclick="if(event.target===this)closeModal('previewModal')">
   <div class="modal-content">
     <div class="modal-title" id="previewModalTitle">歌词预览</div>
     <div id="previewContent"></div>
@@ -119,9 +225,24 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 4px; font-size: 13px; m
   </div>
 </div>
 
+<nav class="tab-bar" id="tabBar">
+  <button class="tab-item active" onclick="switchTab('songs')">
+    <span class="tab-icon">🎵</span>
+    <span>歌曲列表</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('scraper')">
+    <span class="tab-icon">🔍</span>
+    <span>快速刮削</span>
+  </button>
+</nav>
+
 <script>
 let currentSongs = [];
 let currentPage = 1;
+let totalSongs = 0;
+let searchKeyword = '';
+let noLyricsOnly = false;
+let searchTimer = null;
 const PAGE_SIZE = 20;
 let previewData = null;
 let currentSongId = null;
@@ -178,30 +299,83 @@ function toast(msg, type) {
 }
 
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn, .tab-item').forEach(function (t) { t.classList.remove('active'); });
   if (name === 'songs') {
-    document.querySelectorAll('.tab')[0].classList.add('active');
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.querySelectorAll('.tab-item')[0].classList.add('active');
     document.getElementById('songsTab').style.display = '';
     document.getElementById('scraperTab').style.display = 'none';
     loadSongs();
   } else {
-    document.querySelectorAll('.tab')[1].classList.add('active');
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.querySelectorAll('.tab-item')[1].classList.add('active');
     document.getElementById('songsTab').style.display = 'none';
     document.getElementById('scraperTab').style.display = '';
   }
 }
 
+function onSearchInput() {
+  var input = document.getElementById('songSearchInput');
+  var clearBtn = document.getElementById('clearSearchBtn');
+  clearBtn.style.display = input.value ? '' : 'none';
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(function () {
+    searchKeyword = input.value.trim();
+    currentPage = 1;
+    loadSongs();
+  }, 300);
+}
+
+function onFilterChange() {
+  noLyricsOnly = document.getElementById('noLyricsCheck').checked;
+  currentPage = 1;
+  loadSongs();
+}
+
+function clearSearch() {
+  document.getElementById('songSearchInput').value = '';
+  document.getElementById('clearSearchBtn').style.display = 'none';
+  searchKeyword = '';
+  document.getElementById('noLyricsCheck').checked = false;
+  noLyricsOnly = false;
+  currentPage = 1;
+  loadSongs();
+}
+
 async function loadSongs() {
   document.getElementById('songTableBody').innerHTML = '<tr><td colspan="6" class="loading">加载中...</td></tr>';
+  document.getElementById('songCardBody').innerHTML = '<div class="loading">加载中...</div>';
   try {
-    var data = await af('./songs?limit=' + PAGE_SIZE + '&offset=' + ((currentPage - 1) * PAGE_SIZE));
+    var url = './songs?limit=' + PAGE_SIZE + '&offset=' + ((currentPage - 1) * PAGE_SIZE);
+    if (searchKeyword) url += '&keyword=' + encodeURIComponent(searchKeyword);
+    if (noLyricsOnly) url += '&no_lyrics=1';
+    var data = await af(url);
     var songs = data.songs || data || [];
+    totalSongs = data.total != null ? data.total : songs.length;
     currentSongs = songs;
-    document.getElementById('songCount').textContent = '共 ' + songs.length + ' 首';
+    var totalPages = Math.ceil(totalSongs / PAGE_SIZE) || 1;
+    var label = searchKeyword ? '搜索: "' + searchKeyword + '"' : '';
+    if (totalSongs > 0) {
+      label += (label ? ' — ' : '') + totalSongs + ' 首';
+      if (totalPages > 1) label += '，第 ' + currentPage + '/' + totalPages + ' 页';
+    } else if (searchKeyword) {
+      label += ' — 无结果';
+    } else {
+      label = songs.length + ' 首';
+    }
+    document.getElementById('songCount').textContent = label;
     renderSongTable(songs);
+    renderSongCards(songs);
+    renderPagination();
   } catch (e) {
-    document.getElementById('songTableBody').innerHTML = '<tr><td colspan="6" style="color:red;text-align:center">加载失败: ' + e.message + '</td></tr>';
+    document.getElementById('songTableBody').innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;padding:20px">加载失败: ' + e.message + '</td></tr>';
+    document.getElementById('songCardBody').innerHTML = '<div style="color:red;text-align:center;padding:20px">加载失败: ' + e.message + '</div>';
   }
+}
+
+function escJs(s) {
+  if (!s) return '';
+  return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
 function renderSongTable(songs) {
@@ -212,83 +386,118 @@ function renderSongTable(songs) {
   }
   tbody.innerHTML = songs.map(s => {
     const hasLyric = s.lyric_url || (s.lyric && s.lyric !== '{}');
-    const statusHtml = hasLyric
-      ? '<span class="badge badge-green">有歌词</span>'
-      : '<span class="badge badge-red">无歌词</span>';
+    const statusHtml = hasLyric ? '<span class="badge badge-green">有</span>' : '<span class="badge badge-red">无</span>';
     const dur = s.duration ? formatDuration(s.duration) : '--:--';
-    return `<tr>
-      <td><input type="checkbox" value="${s.id}"></td>
-      <td><strong>${s.title || '未知'}</strong></td>
-      <td>${s.artist || '未知'}</td>
-      <td>${dur}</td>
-      <td>${statusHtml}</td>
-      <td>
-        <button class="btn btn-primary btn-sm" onclick="searchSong(${s.id}, '${s.title.replace(/'/g, "\\'")}', '${(s.artist || '').replace(/'/g, "\\'")}', ${s.duration || 0})">刮削</button>
-      </td>
-    </tr>`;
+    return '<tr>' +
+      '<td><input type="checkbox" value="' + s.id + '"></td>' +
+      '<td><strong>' + (s.title || '未知') + '</strong></td>' +
+      '<td>' + (s.artist || '未知') + '</td>' +
+      '<td class="col-dur">' + dur + '</td>' +
+      '<td>' + statusHtml + '</td>' +
+      '<td><button class="btn btn-primary btn-xs" onclick="searchSong(' + s.id + ',\'' + escJs(s.title) + '\',\'' + escJs(s.artist) + '\',' + (s.duration || 0) + ')">刮削</button></td>' +
+      '</tr>';
   }).join('');
 }
 
-function formatDuration(sec) {
-  if (!sec && sec !== 0) return '--:--';
-  const totalSec = Math.floor(sec);
+function renderSongCards(songs) {
+  const div = document.getElementById('songCardBody');
+  if (songs.length === 0) {
+    div.innerHTML = '<div class="loading">没有歌曲</div>';
+    return;
+  }
+  div.innerHTML = songs.map(s => {
+    const hasLyric = s.lyric_url || (s.lyric && s.lyric !== '{}');
+    const statusHtml = hasLyric ? '<span class="badge badge-green">有</span>' : '<span class="badge badge-red">无</span>';
+    const dur = s.duration ? formatDuration(s.duration) : '--:--';
+    return '<div class="song-item">' +
+      '<input type="checkbox" value="' + s.id + '" style="width:18px;height:18px;flex-shrink:0">' +
+      '<div class="song-item-info">' +
+      '<div class="song-item-title">' + (s.title || '未知') + '</div>' +
+      '<div class="song-item-meta"><span>' + (s.artist || '未知') + '</span><span>' + dur + '</span>' + statusHtml + '</div>' +
+      '</div>' +
+      '<div class="song-item-action"><button class="btn btn-primary btn-xs" onclick="searchSong(' + s.id + ',\'' + escJs(s.title) + '\',\'' + escJs(s.artist) + '\',' + (s.duration || 0) + ')">刮削</button></div>' +
+      '</div>';
+  }).join('');
+}
+
+function lyricType(s) { return s === 'lrclib' ? '逐行' : '逐字'; }
+
+function formatDuration(val) {
+  if (val === undefined || val === null) return '--:--';
+  if (val < 1000) val *= 1000;
+  const totalSec = Math.floor(val / 1000);
   const min = Math.floor(totalSec / 60);
   const s = totalSec % 60;
-  return `${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return String(min).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
 function toggleAll(cb) {
-  document.querySelectorAll('#songTableBody input[type="checkbox"]').forEach(c => c.checked = cb.checked);
+  document.querySelectorAll('#songTableBody input[type="checkbox"], #songCardBody input[type="checkbox"]').forEach(function(c) { c.checked = cb.checked; });
 }
 
 function getSelectedSongIds() {
-  return Array.from(document.querySelectorAll('#songTableBody input[type="checkbox"]:checked'))
-    .map(c => parseInt(c.value));
+  return Array.from(document.querySelectorAll('#songTableBody input[type="checkbox"]:checked, #songCardBody input[type="checkbox"]:checked'))
+    .map(function(c) { return parseInt(c.value); });
 }
 
 async function searchSong(songId, title, artist, duration) {
   currentSongId = songId;
-  document.getElementById('searchModalTitle').textContent = `搜索: ${title} - ${artist}`;
+  document.getElementById('searchModalTitle').textContent = '搜索: ' + title + ' - ' + artist + '（' + formatDuration(duration) + '）';
   document.getElementById('searchResults').innerHTML = '<div class="loading">搜索中...</div>';
   document.getElementById('searchModal').classList.add('active');
   try {
-    const params = new URLSearchParams({ title, artist, duration: String(duration) });
-    const data = await pluginApi(`/search?${params}`);
+    const durationMs = duration < 10000 ? duration * 1000 : duration;
+    const params = new URLSearchParams({ title: title, artist: artist, duration: String(durationMs) });
+    const data = await pluginApi('/search?' + params.toString());
     renderSearchResults(data.results || []);
   } catch (e) {
-    document.getElementById('searchResults').innerHTML = `<div style="color:red">搜索失败: ${e.message}</div>`;
+    document.getElementById('searchResults').innerHTML = '<div style="color:red;text-align:center;padding:20px">搜索失败: ' + e.message + '</div>';
   }
 }
 
 function renderSearchResults(results) {
   const div = document.getElementById('searchResults');
   if (results.length === 0) {
-    div.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">未找到匹配结果</div>';
+    div.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-3)">未找到匹配结果</div>';
     return;
   }
-  div.innerHTML = `<table>
-    <thead><tr>
-      <th>来源</th><th>歌名</th><th>歌手</th><th>专辑</th><th>时长</th><th>匹配度</th><th>操作</th>
-    </tr></thead>
-    <tbody>${results.map((r, i) => {
-      const scoreColor = r.score >= 80 ? '#28a745' : r.score >= 50 ? '#ffc107' : '#dc3545';
-      const sourceClass = `source-tag source-${r.source}`;
-      return `<tr>
-        <td><span class="${sourceClass}">${r.source_label}</span></td>
-        <td>${r.title}</td>
-        <td>${r.artist}</td>
-        <td>${r.album || '-'}</td>
-        <td>${formatDuration(r.duration)}</td>
-        <td>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width:${r.score}%;background:${scoreColor}"></div>
-          </div>
-          <span style="font-size:12px;margin-left:4px">${r.score}%</span>
-        </td>
-        <td><button class="btn btn-primary btn-sm" onclick="previewResult(${i})">预览</button></td>
-      </tr>`;
-    }).join('')}</tbody>
-  </table>`;
+  div.innerHTML =
+    '<table class="search-results-table">' +
+    '<thead><tr>' +
+    '<th>来源</th><th>歌名</th><th>歌手</th><th style="display:none">专辑</th><th>时长</th><th>类型</th><th>匹配度</th><th>操作</th>' +
+    '</tr></thead>' +
+    '<tbody>' + results.map(function(r, i) {
+      var scoreColor = r.score >= 80 ? '#28a745' : r.score >= 50 ? '#ffc107' : '#dc3545';
+      var sourceClass = 'source-tag source-' + r.source;
+      return '<tr>' +
+        '<td><span class="' + sourceClass + '">' + r.source_label + '</span></td>' +
+        '<td>' + r.title + '</td>' +
+        '<td>' + r.artist + '</td>' +
+        '<td style="display:none">' + (r.album || '-') + '</td>' +
+        '<td>' + formatDuration(r.duration) + '</td>' +
+        '<td>' + lyricType(r.source) + '</td>' +
+        '<td><div class="progress-bar"><div class="progress-fill" style="width:' + r.score + '%;background:' + scoreColor + '"></div></div><span style="font-size:11px;margin-left:4px">' + r.score + '%</span></td>' +
+        '<td><button class="btn btn-primary btn-xs" onclick="previewResult(' + i + ')">预览</button></td>' +
+        '</tr>';
+    }).join('') + '</tbody></table>' +
+
+    '<div class="search-result-cards">' + results.map(function(r, i) {
+      var scoreColor = r.score >= 80 ? '#28a745' : r.score >= 50 ? '#ffc107' : '#dc3545';
+      var sourceClass = 'source-tag source-' + r.source;
+      return '<div class="search-result-item">' +
+        '<span class="' + sourceClass + '">' + r.source_label + '</span>' +
+        '<div class="search-result-body">' +
+        '<div class="search-result-title">' + r.title + '</div>' +
+        '<div class="search-result-meta">' +
+        '<span>' + r.artist + '</span>' +
+        '<span>' + formatDuration(r.duration) + '</span>' +
+        '<span>' + lyricType(r.source) + '</span>' +
+        '<div class="progress-bar" style="width:60px"><div class="progress-fill" style="width:' + r.score + '%;background:' + scoreColor + '"></div></div>' +
+        '<span>' + r.score + '%</span>' +
+        '</div></div>' +
+        '<div class="search-result-action"><button class="btn btn-primary btn-xs" onclick="previewResult(' + i + ')">预览</button></div>' +
+        '</div>';
+    }).join('') + '</div>';
   window._searchResults = results;
 }
 
@@ -296,7 +505,7 @@ async function previewResult(index) {
   const results = window._searchResults || [];
   const r = results[index];
   if (!r) return;
-  document.getElementById('previewModalTitle').textContent = `预览: ${r.title} - ${r.artist} [${r.source_label}]`;
+  document.getElementById('previewModalTitle').textContent = '预览: ' + r.title + ' - ' + r.artist + ' [' + r.source_label + ']';
   document.getElementById('previewContent').innerHTML = '<div class="loading">获取中...</div>';
   document.getElementById('previewModal').classList.add('active');
   try {
@@ -309,18 +518,14 @@ async function previewResult(index) {
       }),
     });
     previewData = data;
-    document.getElementById('previewContent').innerHTML = `
-      <p><strong>类型:</strong> ${data.lyrics_type === 'verbatim' ? '逐字歌词' : '逐行歌词'} | <strong>行数:</strong> ${data.line_count}</p>
-      <div style="margin-top:12px">
-        <p style="font-weight:600;margin-bottom:6px;">原词 LRC:</p>
-        <pre>${data.lyric || '(无)'}</pre>
-      </div>
-      ${data.tlyric ? `<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">翻译 LRC:</p><pre>${data.tlyric}</pre></div>` : ''}
-      ${data.lxlyric ? `<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">逐字时间轴:</p><pre>${data.lxlyric}</pre></div>` : ''}
-    `;
+    var html = '<p><strong>类型:</strong> ' + (data.lyrics_type === 'verbatim' ? '逐字歌词' : '逐行歌词') + ' | <strong>行数:</strong> ' + data.line_count + '</p>';
+    html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">原词 LRC:</p><pre>' + (data.lyric || '(无)') + '</pre></div>';
+    if (data.tlyric) html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">翻译 LRC:</p><pre>' + data.tlyric + '</pre></div>';
+    if (data.lxlyric) html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">逐字时间轴:</p><pre>' + data.lxlyric + '</pre></div>';
+    document.getElementById('previewContent').innerHTML = html;
     document.getElementById('attachBtn').style.display = '';
   } catch (e) {
-    document.getElementById('previewContent').innerHTML = `<div style="color:red">获取失败: ${e.message}</div>`;
+    document.getElementById('previewContent').innerHTML = '<div style="color:red;text-align:center;padding:20px">获取失败: ' + e.message + '</div>';
     document.getElementById('attachBtn').style.display = 'none';
   }
 }
@@ -349,7 +554,7 @@ async function attachLyrics() {
       toast(result.message || '关联失败', 'error');
     }
   } catch (e) {
-    toast(`关联失败: ${e.message}`, 'error');
+    toast('关联失败: ' + e.message, 'error');
   } finally {
     document.getElementById('attachBtn').disabled = false;
     document.getElementById('attachBtn').textContent = '确认入库';
@@ -359,13 +564,14 @@ async function attachLyrics() {
 async function scrapeSelected() {
   const ids = getSelectedSongIds();
   if (ids.length === 0) { toast('请先选择歌曲', 'error'); return; }
-  toast(`开始刮削 ${ids.length} 首歌曲...`);
+  toast('开始刮削 ' + ids.length + ' 首歌曲...');
   for (const sid of ids) {
-    const song = currentSongs.find(s => s.id === sid);
+    const song = currentSongs.find(function(s) { return s.id === sid; });
     if (!song) continue;
     try {
-      const params = new URLSearchParams({ title: song.title, artist: song.artist || '', duration: String(song.duration || 0) });
-      const searchData = await pluginApi(`/search?${params}`);
+      const d = song.duration || 0;
+      const params = new URLSearchParams({ title: song.title, artist: song.artist || '', duration: String(d < 10000 ? d * 1000 : d) });
+      const searchData = await pluginApi('/search?' + params.toString());
       if (!searchData.results || searchData.results.length === 0) continue;
       const best = searchData.results[0];
       const fetchData = await pluginApi('/fetch', {
@@ -387,7 +593,7 @@ async function scrapeSelected() {
         }),
       });
     } catch (e) {
-      console.error(`[批量] ${song.title} 失败:`, e);
+      console.error('[批量] ' + song.title + ' 失败:', e);
     }
   }
   toast('批量刮削完成');
@@ -403,26 +609,73 @@ async function quickScrape() {
   try {
     const data = await pluginApi('/scrape', {
       method: 'POST',
-      body: JSON.stringify({ title, artist, duration }),
+      body: JSON.stringify({ title: title, artist: artist, duration: duration }),
     });
     if (data.success) {
-      document.getElementById('quickResult').innerHTML = `
-        <div style="padding:15px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;">
-          <p><strong>✅ 匹配结果 (${data.source_label}, ${data.score}%)</strong></p>
-          <pre style="margin-top:10px">${data.lyric || '(无歌词内容)'}</pre>
-        </div>`;
+      document.getElementById('quickResult').innerHTML =
+        '<div style="padding:15px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">' +
+        '<p><strong>✅ 匹配结果 (' + data.source_label + ', ' + data.score + '%)</strong></p>' +
+        '<pre style="margin-top:10px">' + (data.lyric || '(无内容)') + '</pre></div>';
     } else {
-      document.getElementById('quickResult').innerHTML = `<div style="padding:15px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;color:#dc2626;">${data.message || '未找到匹配'}</div>`;
+      document.getElementById('quickResult').innerHTML =
+        '<div style="padding:15px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#dc2626;">' + (data.message || '未找到匹配') + '</div>';
     }
   } catch (e) {
-    document.getElementById('quickResult').innerHTML = `<div style="color:red">${e.message}</div>`;
+    document.getElementById('quickResult').innerHTML = '<div style="color:red;text-align:center;padding:12px">' + e.message + '</div>';
   }
+}
+
+function renderPagination() {
+  var el = document.getElementById('pagination');
+  var totalPages = Math.ceil(totalSongs / PAGE_SIZE) || 1;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  var html = '<button onclick="goPage(' + (currentPage - 1) + ')"' + (currentPage <= 1 ? ' disabled style="opacity:0.4;cursor:not-allowed"' : '') + '>‹ 上一页</button>';
+  html += '<div class="page-numbers" style="display:flex;align-items:center;gap:4px">';
+  var range = 2;
+  var start = Math.max(1, currentPage - range);
+  var end = Math.min(totalPages, currentPage + range);
+  if (start > 1) {
+    html += '<button class="page-number" onclick="goPage(1)">1</button>';
+    if (start > 2) html += '<span class="page-gap" style="padding:0 4px;color:var(--text-3)">…</span>';
+  }
+  for (var p = start; p <= end; p++) {
+    html += '<button class="page-number' + (p === currentPage ? ' active' : '') + '" onclick="goPage(' + p + ')">' + p + '</button>';
+  }
+  if (end < totalPages) {
+    if (end < totalPages - 1) html += '<span class="page-gap" style="padding:0 4px;color:var(--text-3)">…</span>';
+    html += '<button class="page-number" onclick="goPage(' + totalPages + ')">' + totalPages + '</button>';
+  }
+  html += '</div>';
+  html += '<button onclick="goPage(' + (currentPage + 1) + ')"' + (currentPage >= totalPages ? ' disabled style="opacity:0.4;cursor:not-allowed"' : '') + '>下一页 ›</button>';
+  html += '<span class="page-jump" style="display:inline-flex;align-items:center;gap:5px;margin-left:4px;color:var(--text-2);font-size:12px">跳转 <input id="pageJumpInput" type="number" min="1" max="' + totalPages + '" style="width:56px;min-height:32px;padding:0 6px;border:1px solid #ddd;border-radius:6px;font-size:13px;text-align:center"> <button onclick="jumpPage()" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:var(--card);cursor:pointer;font-size:12px">GO</button></span>';
+  el.innerHTML = html;
+  var jumpInput = document.getElementById('pageJumpInput');
+  if (jumpInput) jumpInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') jumpPage(); });
+}
+
+function goPage(page) {
+  if (page < 1) return;
+  var totalPages = Math.ceil(totalSongs / PAGE_SIZE) || 1;
+  if (page > totalPages) return;
+  currentPage = page;
+  loadSongs();
+}
+
+function jumpPage() {
+  var input = document.getElementById('pageJumpInput');
+  if (!input) return;
+  var p = parseInt(input.value, 10);
+  if (isNaN(p) || p < 1) return;
+  var totalPages = Math.ceil(totalSongs / PAGE_SIZE) || 1;
+  if (p > totalPages) p = totalPages;
+  goPage(p);
 }
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
 
+document.getElementById('songSearchInput').addEventListener('input', onSearchInput);
 loadSongs();
 </script>
 </body>

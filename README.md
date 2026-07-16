@@ -6,9 +6,9 @@
 
 | 源 | 标识 | 歌词类型 |
 |---|---|---|
-| QQ 音乐 | `qm` | 逐行 / 逐字 |
-| 酷狗音乐 | `kg` | 逐行 / 逐字 |
-| 网易云音乐 | `ne` | 逐行 |
+| 小秋 | `qm` | 逐行 / 逐字 |
+| 小枸 | `kg` | 逐行 / 逐字 |
+| 小云 | `ne` | 逐行 |
 | Lrclib | `lrclib` | 逐行 |
 
 ## 功能
@@ -69,9 +69,9 @@ src/
   types.ts         # 类型定义
   sources/         # 各源实现
     engine.ts      # 源引擎
-    qq.ts          # QQ 音乐
-    kugou.ts       # 酷狗音乐
-    netease.ts     # 网易云音乐
+    qq.ts          # 小秋
+    kugou.ts       # 小枸
+    netease.ts     # 小云
     lrclib.ts      # Lrclib
   handlers/        # 请求处理器
     search.ts

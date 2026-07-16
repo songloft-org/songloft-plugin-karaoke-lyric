@@ -29,16 +29,23 @@ export async function attachLyricsToSong(
   try {
     const hostUrl = await getHostUrl();
     const token = await getToken();
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
+    await fetch(`${hostUrl}/api/v1/songs/${songId}/lyrics`, {
+      method: 'DELETE',
+      headers,
+    });
+
     const body = JSON.stringify({
       lyric_source: 'cached',
       lyric: JSON.stringify(payload),
     });
     const resp = await fetch(`${hostUrl}/api/v1/songs/${songId}/lyrics`, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
       body,
     });
     return resp.status === 200;

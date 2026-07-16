@@ -6,9 +6,9 @@ export enum Source {
 }
 
 export const SOURCE_LABELS: Record<Source, string> = {
-  [Source.QM]: 'QQ音乐',
-  [Source.KG]: '酷狗音乐',
-  [Source.NE]: '网易云音乐',
+  [Source.QM]: '小秋',
+  [Source.KG]: '小枸',
+  [Source.NE]: '小芸',
   [Source.LRCLIB]: 'Lrclib',
 };
 
