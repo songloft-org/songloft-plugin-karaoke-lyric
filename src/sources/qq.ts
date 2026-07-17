@@ -1,37 +1,16 @@
 import { Source, SongInfo, MultiLyrics } from '../types';
 import { BaseSource } from './base';
 import { qrc2data } from '../parsers/qrc';
-import { tripledesDecrypt } from '../crypto/tripledes';
-import { qmc1Decrypt } from '../crypto/qmc1';
-import { bytesFromHex, zlibInflate, hexFromBytes } from '../utils/zlib';
+import { qrcDecryptHex } from '../crypto/qrc_des';
+import { zlibInflate, hexFromBytes, utf8FromHex } from '../utils/zlib';
 import { fetchWithRetry, readRespBody } from '../utils/fetch';
 
-const TRIPLE_DES_KEY = (() => {
-  const str = '!@#)(*$%123ZXC!@!@#)(NHL';
-  const buf = new Uint8Array(str.length);
-  for (let i = 0; i < str.length; i++) buf[i] = str.charCodeAt(i);
-  return buf;
-})();
-
-function randHex(len: number): string {
-  let s = '';
-  for (let i = 0; i < len; i++) {
-    s += ((Math.random() * 16) | 0).toString(16);
-  }
-  return s;
-}
-
-function qrcDecrypt(encryptedHex: string, qrcType: number): string {
-  let data = bytesFromHex(encryptedHex);
-
-  if (qrcType === 0) {
-    data = qmc1Decrypt(data);
-    data = data.slice(11);
-  }
-
-  const desDecrypted = tripledesDecrypt(data, TRIPLE_DES_KEY) as Uint8Array<ArrayBuffer>;
+// QRC 加密 hex → QQ 私有 3DES 解密 → zlib 解压得到明文歌词（逐字 QRC 或回退逐行）。
+// 注意：__go_zlib_inflate 返回的是 hex，需再转 UTF-8 才是可解析的歌词文本。
+function qrcDecrypt(encryptedHex: string): string {
+  const desDecrypted = qrcDecryptHex(encryptedHex);
   const hexData = hexFromBytes(desDecrypted);
-  return zlibInflate(hexData);
+  return utf8FromHex(zlibInflate(hexData));
 }
 
 const DOMAIN = 'u.y.qq.com';
@@ -84,7 +63,6 @@ export class QQSource implements BaseSource {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept-Encoding': 'gzip',
           'User-Agent': 'okhttp/3.14.9',
         },
         body,
@@ -141,7 +119,6 @@ export class QQSource implements BaseSource {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept-Encoding': 'gzip',
             'User-Agent': 'okhttp/3.14.9',
           },
           body,
@@ -213,7 +190,6 @@ export class QQSource implements BaseSource {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept-Encoding': 'gzip',
             'User-Agent': 'okhttp/3.14.9',
           },
           body,
@@ -230,10 +206,10 @@ export class QQSource implements BaseSource {
 
       const multi: MultiLyrics = { orig: [] };
 
-      const processLyric = (lyricHex: string, qrcTypeStr: string, targetKey: 'orig' | 'ts' | 'roma') => {
-        if (!lyricHex || lyricHex === '0' || qrcTypeStr === '0') return;
+      const processLyric = (lyricHex: string, targetKey: 'orig' | 'ts' | 'roma') => {
+        if (!lyricHex || lyricHex === '0') return;
         try {
-          const decrypted = qrcDecrypt(lyricHex, 1);
+          const decrypted = qrcDecrypt(lyricHex);
           const parsed = qrc2data(decrypted);
           if (targetKey === 'orig') {
             multi.orig = parsed.data;
@@ -247,9 +223,9 @@ export class QQSource implements BaseSource {
         }
       };
 
-      processLyric(lyricData.lyric, lyricData.qrc_t || lyricData.lrc_t, 'orig');
-      processLyric(lyricData.trans, lyricData.trans_t, 'ts');
-      processLyric(lyricData.roma, lyricData.roma_t, 'roma');
+      processLyric(lyricData.lyric, 'orig');
+      processLyric(lyricData.trans, 'ts');
+      processLyric(lyricData.roma, 'roma');
 
       return multi;
     } catch (e: any) {

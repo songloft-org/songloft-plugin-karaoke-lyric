@@ -1,3 +1,5 @@
 /dist/
 /docs/
 *.iml
+.songloft-dev.json
+node_modules/

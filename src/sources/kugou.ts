@@ -2,7 +2,7 @@ import { Source, SongInfo, MultiLyrics } from '../types';
 import { BaseSource } from './base';
 import { krc2mdata } from '../parsers/krc';
 import { krcDecrypt } from '../crypto/xor';
-import { zlibInflate, hexFromBytes } from '../utils/zlib';
+import { zlibInflate, hexFromBytes, utf8FromHex } from '../utils/zlib';
 import { fetchWithRetry, readRespBody } from '../utils/fetch';
 
 const SECRET = 'LnT6xpN3khm36zse0QzvmgTZ3waWdRSA';
@@ -69,7 +69,6 @@ export class KuGouSource implements BaseSource {
     return {
       'User-Agent': `Android14-1070-11070-201-0-${module}-wifi`,
       'Connection': 'Keep-Alive',
-      'Accept-Encoding': 'gzip, deflate',
       'KG-Rec': '1',
       'KG-RC': '1',
       'KG-CLIENTTIMEMS': String(Date.now()),
@@ -240,7 +239,8 @@ export class KuGouSource implements BaseSource {
 
       const xored = krcDecrypt(bytes.slice(4));
       const hexData = hexFromBytes(xored);
-      const decompressed = zlibInflate(hexData);
+      // __go_zlib_inflate 返回 hex，需转 UTF-8 才是可解析的 KRC 文本。
+      const decompressed = utf8FromHex(zlibInflate(hexData));
 
       const { multi } = krc2mdata(decompressed);
       return multi;

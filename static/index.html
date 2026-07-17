@@ -420,7 +420,8 @@ function renderSongCards(songs) {
   }).join('');
 }
 
-function lyricType(s) { return s === 'lrclib' ? '逐行' : '逐字'; }
+// 来源“支持类型”能力提示（真实类型需拉歌词后才知道，以预览为准）：QQ/酷狗支持逐字，网易云/Lrclib 为逐行。
+function lyricType(s) { return (s === 'qm' || s === 'kg') ? '逐字' : '逐行'; }
 
 function formatDuration(val) {
   if (val === undefined || val === null) return '--:--';
@@ -464,7 +465,7 @@ function renderSearchResults(results) {
   div.innerHTML =
     '<table class="search-results-table">' +
     '<thead><tr>' +
-    '<th>来源</th><th>歌名</th><th>歌手</th><th style="display:none">专辑</th><th>时长</th><th>类型</th><th>匹配度</th><th>操作</th>' +
+    '<th>来源</th><th>歌名</th><th>歌手</th><th style="display:none">专辑</th><th>时长</th><th>支持类型</th><th>匹配度</th><th>操作</th>' +
     '</tr></thead>' +
     '<tbody>' + results.map(function(r, i) {
       var scoreColor = r.score >= 80 ? '#28a745' : r.score >= 50 ? '#ffc107' : '#dc3545';
