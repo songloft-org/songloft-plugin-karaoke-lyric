@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>逐字歌词</title>
+<script type="module">
+import { Converter } from 'https://cdn.jsdelivr.net/npm/js-opencc@1.3.5/dist/bundles/full.js';
+window.__t2s = Converter({ from: 'tw', to: 'cn' });
+</script>
 <style>
 :root { --primary: #007aff; --primary-hover: #0056b3; --success: #28a745; --danger: #dc3545; --gray: #6c757d; --bg: #f5f5f5; --card: #fff; --text: #333; --text-2: #666; --text-3: #999; --border: #eee; --tab-h: 48px; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -134,6 +138,9 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
   .search-edit-form { flex-direction: column; }
   .search-edit-form input { width: 100%; }
   .search-edit-form .btn { width: 100%; justify-content: center; }
+  .edit-bar { flex-direction: column; align-items: stretch !important; }
+  .edit-bar .btn { width: 100%; justify-content: center; }
+  .edit-bar input { width: 100% !important; }
   .scraper-form input { width: 100%; }
   .scraper-form .btn { width: 100%; }
   .header-bar { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -143,6 +150,11 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
   .toast { left: 16px; right: 16px; text-align: center; top: auto; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); animation: slideUp 0.3s ease; }
   @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 }
+
+.lyrics-preview { max-height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 6px; padding: 8px 12px; }
+.lyric-line { padding: 2px 0; font-size: 13px; line-height: 1.6; }
+.lyric-time { color: #909399; margin-right: 8px; font-family: monospace; white-space: nowrap; }
+.edit-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 12px; background: #f5f7fa; border-radius: 6px; }
 
 @media (min-width: 769px) {
   .song-table th, .song-table td { padding: 10px 16px; }
@@ -227,8 +239,9 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
   <div class="modal-content">
     <div class="modal-title" id="previewModalTitle">歌词预览</div>
     <div id="previewContent"></div>
-    <div class="modal-actions">
-      <button class="btn btn-success" id="attachBtn" onclick="attachLyrics()">确认入库</button>
+    <div class="modal-actions" id="previewActions">
+      <button class="btn btn-success" id="attachBtn" onclick="attachLyrics()" style="display:none">入库</button>
+      <button class="btn btn-outline" id="editBtn" onclick="toggleEditMode()" style="display:none">编辑</button>
       <button class="btn btn-secondary" onclick="closeModal('previewModal')">取消</button>
     </div>
   </div>
@@ -254,6 +267,7 @@ let noLyricsOnly = false;
 let searchTimer = null;
 const PAGE_SIZE = 20;
 let previewData = null;
+let previewMode = 'view';
 let currentSongId = null;
 let currentSongDuration = 0;
 
@@ -530,15 +544,240 @@ function renderSearchResults(results) {
   window._searchResults = results;
 }
 
+function convertT2S() {
+  var ta = document.getElementById('editLyricTextarea');
+  if (!ta) return;
+  if (!window.__t2s) { toast('繁简转换库加载中，请稍后', 'error'); return; }
+  var raw = ta.value;
+  var converted = t2s(raw);
+  if (converted === raw) { toast('未检测到繁体字', ''); return; }
+  ta.value = converted;
+  toast('已转换为简体');
+  onEditInput();
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function parseLrcLines(raw) {
+  if (!raw) return [];
+  var lines = [];
+  var pattern = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\](.*)/g;
+  var match;
+  while ((match = pattern.exec(raw)) !== null) {
+    var mm = parseInt(match[1], 10);
+    var ss = parseInt(match[2], 10);
+    var ms = parseInt(match[3] || '0', 10);
+    if (match[3] && match[3].length === 1) ms *= 100;
+    else if (match[3] && match[3].length === 2) ms *= 10;
+    var text = match[4].trim();
+    if (text) lines.push({ time: mm * 60 + ss + ms / 1000, text: text });
+  }
+  lines.sort(function (a, b) { return a.time - b.time; });
+  return lines;
+}
+
+function fmtTime(sec) {
+  if (sec === undefined || sec === null) return '--:--';
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return String(m) + ':' + String(s).padStart(2, '0');
+}
+
+function fmtTimeMs(sec) {
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  var ms = Math.round((sec % 1) * 100);
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(ms).padStart(2, '0');
+}
+
+function renderLrcPreview(raw, maxH) {
+  maxH = maxH || 300;
+  var lines = parseLrcLines(raw);
+  if (lines.length === 0) return '<pre>' + escHtml(raw || '(无)') + '</pre>';
+  var html = '<div class="lyrics-preview" style="max-height:' + maxH + 'px">';
+  for (var i = 0; i < lines.length; i++) {
+    html += '<div class="lyric-line"><span class="lyric-time">' + fmtTime(lines[i].time) + '</span>' + escHtml(lines[i].text) + '</div>';
+  }
+  return html + '</div>';
+}
+
+function renderPreviewView() {
+  var data = previewData;
+  if (!data) return;
+  previewMode = 'view';
+  document.getElementById('previewModalTitle').textContent = document.getElementById('previewModalTitle').textContent.replace(/^编辑/, '预览');
+
+  var html = '<p><strong>类型:</strong> ' + (data.lyrics_type === 'verbatim' ? '逐字歌词' : '逐行歌词') + ' | <strong>行数:</strong> ' + data.line_count + '</p>';
+
+  html += '<div style="margin-top:10px"><p style="font-weight:600;margin-bottom:6px;font-size:14px">原词 LRC:</p>' + renderLrcPreview(data.lyric) + '</div>';
+
+  if (data.tlyric) {
+    html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;font-size:14px">翻译 LRC:</p>' + renderLrcPreview(data.tlyric, 200) + '</div>';
+  }
+  if (data.lxlyric) {
+    html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;font-size:14px">逐字时间轴:</p><pre style="max-height:150px;font-size:12px;line-height:1.4">' + escHtml(data.lxlyric) + '</pre></div>';
+  }
+
+  document.getElementById('previewContent').innerHTML = html;
+  document.getElementById('attachBtn').style.display = '';
+  document.getElementById('editBtn').style.display = '';
+}
+
+function onEditInput() {
+  var ta = document.getElementById('editLyricTextarea');
+  if (!ta) return;
+  var raw = ta.value;
+  var lines = parseLrcLines(raw);
+  var lc = document.getElementById('editLineCount');
+  if (lc) lc.textContent = lines.length;
+  var preview = document.getElementById('editParsePreview');
+  if (!preview) return;
+  var html = '';
+  for (var i = 0; i < lines.length; i++) {
+    html += '<div class="lyric-line"><span class="lyric-time">' + fmtTime(lines[i].time) + '</span>' + escHtml(lines[i].text) + '</div>';
+  }
+  preview.innerHTML = html || '<div style="color:#909399;text-align:center;padding:20px">未解析到歌词行</div>';
+}
+
+function t2s(str) {
+  if (!window.__t2s) { toast('OpenCC 库加载中，请稍后', 'error'); return str; }
+  return window.__t2s(str);
+}
+
+function toggleEditMode() {
+  if (previewMode === 'edit') {
+    renderPreviewView();
+    return;
+  }
+  previewMode = 'edit';
+  document.getElementById('editBtn').style.display = 'none';
+  document.getElementById('attachBtn').style.display = 'none';
+  document.getElementById('previewModalTitle').textContent = '编辑歌词';
+
+  var raw = previewData.lyric || '';
+  var html = '';
+
+  html += '<div class="edit-bar">';
+  html += '<span style="font-size:13px;color:#606266">时间偏移（秒）</span>';
+  html += '<input id="offsetInput" type="number" step="0.1" value="0" style="width:85px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;min-height:32px">';
+  html += '<button class="btn btn-primary btn-xs" onclick="applyLyricsOffset()">应用偏移</button>';
+  html += '<button class="btn btn-secondary btn-xs" onclick="document.getElementById(\'offsetInput\').value=0">重置</button>';
+  html += '<button class="btn btn-success btn-xs" onclick="addCountdown()">增加倒计时</button>';
+  html += '<button class="btn btn-outline btn-xs" onclick="convertT2S()">繁→简</button>';
+  html += '<button class="btn btn-primary btn-xs" onclick="saveEdit()" style="margin-left:auto">保存歌词</button>';
+  html += '</div>';
+
+  html += '<textarea id="editLyricTextarea" oninput="onEditInput()" style="width:100%;min-height:180px;padding:10px;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:13px;line-height:1.6;resize:vertical;outline:none">' + escHtml(raw) + '</textarea>';
+
+  html += '<div style="margin-top:8px;display:flex;justify-content:space-between;font-size:13px;color:#909399">';
+  html += '<span>LRC 格式：[mm:ss.xx]歌词文本</span>';
+  html += '<span>行数: <span id="editLineCount">0</span></span>';
+  html += '</div>';
+
+  html += '<div id="editParsePreview" style="margin-top:10px;max-height:200px;overflow-y:auto;background:#f8f9fa;border-radius:6px;padding:10px;font-size:13px"></div>';
+
+  html += '<div style="margin-top:12px;display:flex;gap:8px">';
+  html += '<button class="btn btn-outline" onclick="renderPreviewView()" style="flex:1">取消编辑</button>';
+  html += '</div>';
+
+  document.getElementById('previewContent').innerHTML = html;
+  onEditInput();
+}
+
+function applyLyricsOffset() {
+  var offset = parseFloat(document.getElementById('offsetInput').value) || 0;
+  if (offset === 0) return;
+  var ta = document.getElementById('editLyricTextarea');
+  ta.value = ta.value.replace(/\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g, function (_, mm, ss, ms) {
+    var totalSec = parseInt(mm, 10) * 60 + parseInt(ss, 10) + parseInt(ms || '0', 10) / Math.pow(10, (ms || '').length || 0);
+    var newSec = Math.max(0, totalSec + offset);
+    return '[' + fmtTimeMs(newSec) + ']';
+  });
+  toast('已应用 ' + (offset > 0 ? '+' : '') + offset.toFixed(2) + 's 偏移');
+  document.getElementById('offsetInput').value = '0';
+  onEditInput();
+}
+
+function addCountdown() {
+  var ta = document.getElementById('editLyricTextarea');
+  var lines = ta.value.split('\n');
+  lines = lines.filter(function (l) { return l.indexOf('●') === -1; });
+
+  var skipPatterns = [
+    /^[词曲编制作混录监声吉贝键盘鼓和编写]*[：:]/,
+    /^(词|曲|编曲|编排|制作人?|混音|录音|监制|和声|吉他|贝斯|键盘|鼓|弦乐|MIDI|编写|作词|作曲|文案|策划|出品|发行|OP|SP|PV|MV)\s*[：:]/i,
+    /^[\s]*[词曲编制作混录监]\s*[\s：:]/,
+    /^(原唱|翻唱|演唱|献唱|合唱|对唱|伴奏|纯音乐|演奏)\s*[：:]/i,
+  ];
+
+  function extractPlainText(line) {
+    return line.replace(/\[{1,2}\d{1,2}:\d{2}(?:\.\d{1,3})?\]{1,2}/g, '').trim();
+  }
+
+  var firstTime = -1;
+  var firstIdx = -1;
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    if (/^\[[a-zA-Z_]/.test(line)) continue;
+    var m = line.match(/^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\](.*)/);
+    if (m) {
+      var text = m[4].trim();
+      var plain = extractPlainText(text);
+      var isSkip = false;
+      for (var p = 0; p < skipPatterns.length; p++) {
+        if (skipPatterns[p].test(plain)) { isSkip = true; break; }
+      }
+      if (isSkip) continue;
+      var mm = parseInt(m[1], 10), ss = parseInt(m[2], 10), ms = parseInt(m[3] || '0', 10);
+      if (m[3] && m[3].length === 1) ms *= 100;
+      else if (m[3] && m[3].length === 2) ms *= 10;
+      firstTime = mm * 60 + ss + ms / 1000;
+      firstIdx = i;
+      break;
+    }
+  }
+  if (firstTime < 0) { toast('未找到歌词行', 'error'); return; }
+  var start = Math.max(0, firstTime - 3);
+  var isVerbatim = ta.value.indexOf('[[') !== -1;
+  if (isVerbatim) {
+    var t0 = fmtTimeMs(start), t1 = fmtTimeMs(start + 1), t2 = fmtTimeMs(start + 2);
+    var cd = '[' + t0 + ']●[[' + t1 + ']][[' + t1 + ']]●[[' + t2 + ']][[' + t2 + ']]●[[' + fmtTimeMs(firstTime) + ']]';
+    lines.splice(firstIdx, 0, cd);
+  } else {
+    var cd0 = '[' + fmtTimeMs(start) + ']●●●';
+    var cd1 = '[' + fmtTimeMs(start + 1) + ']●●';
+    var cd2 = '[' + fmtTimeMs(start + 2) + ']●';
+    lines.splice(firstIdx, 0, cd0, cd1, cd2);
+  }
+  ta.value = lines.join('\n');
+  toast('已添加3秒倒计时');
+  onEditInput();
+}
+
+function saveEdit() {
+  var newLyric = document.getElementById('editLyricTextarea').value;
+  previewData.lyric = newLyric;
+  var lines = parseLrcLines(newLyric);
+  previewData.line_count = lines.length;
+  toast('歌词已更新');
+  renderPreviewView();
+}
+
 async function previewResult(index) {
-  const results = window._searchResults || [];
-  const r = results[index];
+  var results = window._searchResults || [];
+  var r = results[index];
   if (!r) return;
   document.getElementById('previewModalTitle').textContent = '预览: ' + r.title + ' - ' + r.artist + ' [' + r.source_label + ']';
   document.getElementById('previewContent').innerHTML = '<div class="loading">获取中...</div>';
+  document.getElementById('attachBtn').style.display = 'none';
+  document.getElementById('editBtn').style.display = 'none';
   document.getElementById('previewModal').classList.add('active');
   try {
-    const data = await pluginApi('/fetch', {
+    var data = await pluginApi('/fetch', {
       method: 'POST',
       body: JSON.stringify({
         source: r.source, title: r.title, artist: r.artist,
@@ -547,15 +786,9 @@ async function previewResult(index) {
       }),
     });
     previewData = data;
-    var html = '<p><strong>类型:</strong> ' + (data.lyrics_type === 'verbatim' ? '逐字歌词' : '逐行歌词') + ' | <strong>行数:</strong> ' + data.line_count + '</p>';
-    html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">原词 LRC:</p><pre>' + (data.lyric || '(无)') + '</pre></div>';
-    if (data.tlyric) html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">翻译 LRC:</p><pre>' + data.tlyric + '</pre></div>';
-    if (data.lxlyric) html += '<div style="margin-top:12px"><p style="font-weight:600;margin-bottom:6px;">逐字时间轴:</p><pre>' + data.lxlyric + '</pre></div>';
-    document.getElementById('previewContent').innerHTML = html;
-    document.getElementById('attachBtn').style.display = '';
+    renderPreviewView();
   } catch (e) {
     document.getElementById('previewContent').innerHTML = '<div style="color:red;text-align:center;padding:20px">获取失败: ' + e.message + '</div>';
-    document.getElementById('attachBtn').style.display = 'none';
   }
 }
 
@@ -564,7 +797,7 @@ async function attachLyrics() {
   document.getElementById('attachBtn').disabled = true;
   document.getElementById('attachBtn').textContent = '入库中...';
   try {
-    const result = await pluginApi('/attach', {
+    var result = await pluginApi('/attach', {
       method: 'POST',
       body: JSON.stringify({
         song_id: currentSongId,

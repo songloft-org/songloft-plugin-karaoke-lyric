@@ -39,9 +39,10 @@ export async function attachLyricsToSong(
       headers,
     });
 
+    const content = payload.lxlyric || payload.lyric || '';
     const body = JSON.stringify({
       lyric_source: 'cached',
-      lyric: JSON.stringify(payload),
+      lyric: content,
     });
     const resp = await fetch(`${hostUrl}/api/v1/songs/${songId}/lyrics`, {
       method: 'PUT',
