@@ -141,6 +141,8 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
   .edit-bar { flex-direction: column; align-items: stretch !important; }
   .edit-bar .btn { width: 100%; justify-content: center; }
   .edit-bar input { width: 100% !important; }
+  .card-body table { font-size: 11px !important; }
+  .card-body td, .card-body th { padding: 4px 6px !important; }
   .scraper-form input { width: 100%; }
   .scraper-form .btn { width: 100%; }
   .header-bar { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -168,7 +170,7 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
 
 <div class="tab-header">
   <button class="tab-btn active" onclick="switchTab('songs')">歌曲列表</button>
-  <button class="tab-btn" onclick="switchTab('scraper')">手动搜索</button>
+  <button class="tab-btn" onclick="switchTab('scraper')">对外接口</button>
 </div>
 
 <div id="songsTab">
@@ -205,6 +207,101 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
 </div>
 
 <div id="scraperTab" style="display:none">
+  <div class="card">
+    <div class="card-header">接口说明</div>
+    <div class="card-body" style="font-size:13px;line-height:1.7;color:var(--text)">
+      <p style="margin-bottom:10px">搜索歌词并返回最佳匹配，供第三方应用集成调用。</p>
+
+      <div style="margin-bottom:10px">
+        <strong style="font-size:14px">请求地址</strong>
+        <pre style="margin-top:4px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px">{plugin_base}/open-scrape</pre>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <strong style="font-size:14px">请求方法</strong>
+        <pre style="margin-top:4px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px">POST</pre>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <strong style="font-size:14px">请求头</strong>
+        <pre style="margin-top:4px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px">Content-Type: application/json
+Authorization: Bearer &lt;token&gt;</pre>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <strong style="font-size:14px">请求参数 (JSON Body)</strong>
+        <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12px">
+          <thead>
+            <tr style="background:#f5f5f5">
+              <th style="padding:6px 8px;border:1px solid #eee;text-align:left">参数</th>
+              <th style="padding:6px 8px;border:1px solid #eee;text-align:left">类型</th>
+              <th style="padding:6px 8px;border:1px solid #eee;text-align:left">必填</th>
+              <th style="padding:6px 8px;border:1px solid #eee;text-align:left">说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">title</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">是</td><td style="padding:6px 8px;border:1px solid #eee">歌曲名</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">artist</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">歌手名</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">duration</td><td style="padding:6px 8px;border:1px solid #eee">number</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">时长（毫秒），用于提高匹配准确度</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <strong style="font-size:14px">响应参数</strong>
+        <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12px">
+          <thead>
+            <tr style="background:#f5f5f5">
+              <th style="padding:6px 8px;border:1px solid #eee;text-align:left">参数</th>
+              <th style="padding:6px 8px;border:1px solid #eee;text-align:left">类型</th>
+              <th style="padding:6px 8px;border:1px solid #eee;text-align:left">说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">success</td><td style="padding:6px 8px;border:1px solid #eee">boolean</td><td style="padding:6px 8px;border:1px solid #eee">是否成功</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">source</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">来源标识（qm/kg/ne/lrclib）</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">source_label</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">来源显示名（小秋/小枸/小芸/Lrclib）</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">score</td><td style="padding:6px 8px;border:1px solid #eee">number</td><td style="padding:6px 8px;border:1px solid #eee">匹配度（0-100）</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">match_title</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">匹配到的歌曲名</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">match_artist</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">匹配到的歌手名</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">match_duration</td><td style="padding:6px 8px;border:1px solid #eee">number</td><td style="padding:6px 8px;border:1px solid #eee">匹配到的歌曲时长（毫秒）</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">lyrics_type</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">歌词类型：verbatim（逐字）/ line（逐行）</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">line_count</td><td style="padding:6px 8px;border:1px solid #eee">number</td><td style="padding:6px 8px;border:1px solid #eee">歌词行数</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">lyric</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">原始 LRC 歌词文本</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">tlyric</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">翻译 LRC（可能为空）</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">lxlyric</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">逐字时间轴 LRC（可能为空）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <strong style="font-size:14px">响应示例 (成功)</strong>
+        <pre style="margin-top:4px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px;max-height:300px;overflow-y:auto">{
+  "success": true,
+  "source": "qm",
+  "source_label": "小秋",
+  "score": 92,
+  "match_title": "七里香",
+  "match_artist": "周杰伦",
+  "match_duration": 245000,
+  "lyrics_type": "verbatim",
+  "line_count": 42,
+  "lyric": "[00:03.35]词：天天\n[00:06.70]曲：周杰伦\n[00:16.76]七月的风懒懒的...",
+  "tlyric": "",
+  "lxlyric": "[00:00.00][[00:00.00]]七[[00:00.18]]月..."
+}</pre>
+      </div>
+
+      <div>
+        <strong style="font-size:14px">响应示例 (失败)</strong>
+        <pre style="margin-top:4px;padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;font-size:12px">{
+  "success": false,
+  "message": "未找到匹配的歌词"
+}</pre>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-header">手动搜索</div>
     <div class="card-body">
@@ -253,7 +350,7 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
     <span>歌曲列表</span>
   </button>
   <button class="tab-item" onclick="switchTab('scraper')">
-    <span class="tab-icon">🔍</span>
+    <span class="tab-icon">🔗</span>
     <span>手动搜索</span>
   </button>
 </nav>
@@ -268,6 +365,7 @@ let searchTimer = null;
 const PAGE_SIZE = 20;
 let previewData = null;
 let previewMode = 'view';
+let previewIsScrape = false;
 let currentSongId = null;
 let currentSongDuration = 0;
 
@@ -610,7 +708,9 @@ function renderPreviewView() {
   previewMode = 'view';
   document.getElementById('previewModalTitle').textContent = document.getElementById('previewModalTitle').textContent.replace(/^编辑/, '预览');
 
-  var html = '<p><strong>类型:</strong> ' + (data.lyrics_type === 'verbatim' ? '逐字歌词' : '逐行歌词') + ' | <strong>行数:</strong> ' + data.line_count + '</p>';
+  var lyricType = data.lyrics_type === 'verbatim' ? '逐字歌词' : (data.lyrics_type === 'line' ? '逐行歌词' : (data.lxlyric ? '逐字歌词' : '逐行歌词'));
+  var lineCount = data.line_count != null ? data.line_count : parseLrcLines(data.lyric).length;
+  var html = '<p><strong>类型:</strong> ' + lyricType + ' | <strong>行数:</strong> ' + lineCount + '</p>';
 
   html += '<div style="margin-top:10px"><p style="font-weight:600;margin-bottom:6px;font-size:14px">原词 LRC:</p>' + renderLrcPreview(data.lyric) + '</div>';
 
@@ -624,6 +724,13 @@ function renderPreviewView() {
   document.getElementById('previewContent').innerHTML = html;
   document.getElementById('attachBtn').style.display = '';
   document.getElementById('editBtn').style.display = '';
+  if (previewIsScrape) {
+    document.getElementById('attachBtn').textContent = '下载到本地';
+    document.getElementById('attachBtn').onclick = downloadLyrics;
+  } else {
+    document.getElementById('attachBtn').textContent = '确认入库';
+    document.getElementById('attachBtn').onclick = attachLyrics;
+  }
 }
 
 function onEditInput() {
@@ -771,6 +878,7 @@ async function previewResult(index) {
   var results = window._searchResults || [];
   var r = results[index];
   if (!r) return;
+  previewIsScrape = false;
   document.getElementById('previewModalTitle').textContent = '预览: ' + r.title + ' - ' + r.artist + ' [' + r.source_label + ']';
   document.getElementById('previewContent').innerHTML = '<div class="loading">获取中...</div>';
   document.getElementById('attachBtn').style.display = 'none';
@@ -863,28 +971,53 @@ async function scrapeSelected() {
 }
 
 async function quickScrape() {
-  const title = document.getElementById('scrapeTitle').value.trim();
-  const artist = document.getElementById('scrapeArtist').value.trim();
-  const duration = parseInt(document.getElementById('scrapeDuration').value || '0', 10);
+  var title = document.getElementById('scrapeTitle').value.trim();
+  var artist = document.getElementById('scrapeArtist').value.trim();
+  var duration = parseInt(document.getElementById('scrapeDuration').value || '0', 10);
   if (!title) { toast('请输入歌曲名', 'error'); return; }
   document.getElementById('quickResult').innerHTML = '<div class="loading">搜索中...</div>';
   try {
-    const data = await pluginApi('/scrape', {
+    var data = await pluginApi('/scrape', {
       method: 'POST',
       body: JSON.stringify({ title: title, artist: artist, duration: duration }),
     });
     if (data.success) {
-      document.getElementById('quickResult').innerHTML =
-        '<div style="padding:15px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">' +
-        '<p><strong>✅ 匹配结果 (' + data.source_label + ', ' + data.score + '%)</strong></p>' +
-        '<pre style="margin-top:10px">' + (data.lyric || '(无内容)') + '</pre></div>';
+      document.getElementById('quickResult').innerHTML = '';
+      previewData = data;
+      previewIsScrape = true;
+      currentSongId = null;
+      var durStr = data.match_duration ? formatDuration(data.match_duration) : '--:--';
+      document.getElementById('previewModalTitle').textContent = '来源: ' + data.source_label + ' | 时长: ' + durStr + ' | 匹配: ' + (data.match_title || '') + ' - ' + (data.match_artist || '') + ' (' + data.score + '%)';
+      renderPreviewView();
+      document.getElementById('previewModal').classList.add('active');
     } else {
-      document.getElementById('quickResult').innerHTML =
-        '<div style="padding:15px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#dc2626;">' + (data.message || '未找到匹配') + '</div>';
+      document.getElementById('quickResult').innerHTML = '<div style="padding:15px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#dc2626;">' + (data.message || '未找到匹配') + '</div>';
     }
   } catch (e) {
     document.getElementById('quickResult').innerHTML = '<div style="color:red;text-align:center;padding:12px">' + e.message + '</div>';
   }
+}
+
+function downloadLyrics() {
+  if (!previewData) return;
+  var content = previewData.lyric || '';
+  if (!content) { toast('没有可下载的歌词', 'error'); return; }
+  if (previewData.tlyric) content += '\n\n' + previewData.tlyric;
+  var title = document.getElementById('scrapeTitle').value.trim() || 'lyrics';
+  var artist = document.getElementById('scrapeArtist').value.trim() || '';
+  var filename = (artist ? artist + ' - ' : '') + title + '.lrc';
+  filename = filename.replace(/[<>:"\/\\|?*]/g, '_');
+  var blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('已下载: ' + filename);
+  closeModal('previewModal');
 }
 
 function renderPagination() {

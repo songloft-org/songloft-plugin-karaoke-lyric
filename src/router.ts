@@ -4,6 +4,7 @@ import { createSearchHandler } from './handlers/search';
 import { createFetchHandler } from './handlers/fetch';
 import { createAttachHandler } from './handlers/attach';
 import { createScrapeHandler } from './handlers/scrape';
+import { createOpenScrapeHandler } from './handlers/open-scrape';
 import { createSongsHandler } from './handlers/songs';
 import { createWebHandler } from './handlers/web';
 
@@ -15,6 +16,7 @@ export function createRouter(engine: SourceEngine) {
   router.post('/fetch', createFetchHandler(engine));
   router.post('/attach', createAttachHandler());
   router.post('/scrape', createScrapeHandler(engine));
+  router.post('/open-scrape', createOpenScrapeHandler(engine));
   router.get('/', createWebHandler());
 
   return router;
