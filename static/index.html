@@ -131,6 +131,9 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
   .pagination .page-number { min-width: 32px; padding-inline: 6px; }
   .page-jump { display: none !important; }
   .scraper-form { flex-direction: column; }
+  .search-edit-form { flex-direction: column; }
+  .search-edit-form input { width: 100%; }
+  .search-edit-form .btn { width: 100%; justify-content: center; }
   .scraper-form input { width: 100%; }
   .scraper-form .btn { width: 100%; }
   .header-bar { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -149,11 +152,11 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
 </head>
 <body>
 
-<div class="page-title">歌词刮削</div>
+<div class="page-title">逐字歌词</div>
 
 <div class="tab-header">
   <button class="tab-btn active" onclick="switchTab('songs')">歌曲列表</button>
-  <button class="tab-btn" onclick="switchTab('scraper')">快速刮削</button>
+  <button class="tab-btn" onclick="switchTab('scraper')">手动搜索</button>
 </div>
 
 <div id="songsTab">
@@ -166,7 +169,7 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
     <div style="margin:0 16px 8px;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2)">
       <label style="display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none">
         <input id="noLyricsCheck" type="checkbox" onchange="onFilterChange()" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">
-        <span>仅显示无歌曲</span>
+        <span>仅显示无歌词歌曲</span>
       </label>
     </div>
     <div class="list-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
@@ -191,13 +194,13 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
 
 <div id="scraperTab" style="display:none">
   <div class="card">
-    <div class="card-header">快速刮削</div>
+    <div class="card-header">手动搜索</div>
     <div class="card-body">
       <div class="scraper-form">
         <input id="scrapeTitle" placeholder="歌曲名 (必填)">
         <input id="scrapeArtist" placeholder="歌手">
         <input id="scrapeDuration" type="number" placeholder="时长(毫秒)">
-        <button class="btn btn-primary" onclick="quickScrape()">刮削</button>
+        <button class="btn btn-primary" onclick="quickScrape()">搜索</button>
       </div>
       <div id="quickResult" style="margin-top:12px"></div>
     </div>
@@ -206,7 +209,13 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
 
 <div class="modal" id="searchModal" onclick="if(event.target===this)closeModal('searchModal')">
   <div class="modal-content">
-    <div class="modal-title" id="searchModalTitle">搜索结果</div>
+    <div class="modal-title">搜索歌词</div>
+    <div class="search-edit-form" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <input id="searchTitleInput" placeholder="歌名" style="flex:2;min-width:140px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none;min-height:36px">
+      <input id="searchArtistInput" placeholder="歌手" style="flex:1;min-width:100px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none;min-height:36px">
+      <span id="searchDurDisplay" style="font-size:13px;color:var(--text-2);white-space:nowrap;padding:0 4px">--:--</span>
+      <button class="btn btn-primary btn-sm" onclick="doEditSearch()">搜索</button>
+    </div>
     <div id="searchResults"></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('searchModal')">关闭</button>
@@ -232,7 +241,7 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
   </button>
   <button class="tab-item" onclick="switchTab('scraper')">
     <span class="tab-icon">🔍</span>
-    <span>快速刮削</span>
+    <span>手动搜索</span>
   </button>
 </nav>
 
@@ -246,6 +255,7 @@ let searchTimer = null;
 const PAGE_SIZE = 20;
 let previewData = null;
 let currentSongId = null;
+let currentSongDuration = 0;
 
 function _token() {
   try { if (window.SongloftPlugin) return SongloftPlugin.getAuthToken() || ''; } catch (e) {}
@@ -394,7 +404,7 @@ function renderSongTable(songs) {
       '<td>' + (s.artist || '未知') + '</td>' +
       '<td class="col-dur">' + dur + '</td>' +
       '<td>' + statusHtml + '</td>' +
-      '<td><button class="btn btn-primary btn-xs" onclick="searchSong(' + s.id + ',\'' + escJs(s.title) + '\',\'' + escJs(s.artist) + '\',' + (s.duration || 0) + ')">刮削</button></td>' +
+      '<td><button class="btn btn-primary btn-xs" onclick="searchSong(' + s.id + ',\'' + escJs(s.title) + '\',\'' + escJs(s.artist) + '\',' + (s.duration || 0) + ')">搜索</button></td>' +
       '</tr>';
   }).join('');
 }
@@ -415,7 +425,7 @@ function renderSongCards(songs) {
       '<div class="song-item-title">' + (s.title || '未知') + '</div>' +
       '<div class="song-item-meta"><span>' + (s.artist || '未知') + '</span><span>' + dur + '</span>' + statusHtml + '</div>' +
       '</div>' +
-      '<div class="song-item-action"><button class="btn btn-primary btn-xs" onclick="searchSong(' + s.id + ',\'' + escJs(s.title) + '\',\'' + escJs(s.artist) + '\',' + (s.duration || 0) + ')">刮削</button></div>' +
+      '<div class="song-item-action"><button class="btn btn-primary btn-xs" onclick="searchSong(' + s.id + ',\'' + escJs(s.title) + '\',\'' + escJs(s.artist) + '\',' + (s.duration || 0) + ')">搜索</button></div>' +
       '</div>';
   }).join('');
 }
@@ -443,12 +453,30 @@ function getSelectedSongIds() {
 
 async function searchSong(songId, title, artist, duration) {
   currentSongId = songId;
-  document.getElementById('searchModalTitle').textContent = '搜索: ' + title + ' - ' + artist + '（' + formatDuration(duration) + '）';
+  currentSongDuration = duration;
+  document.getElementById('searchTitleInput').value = title || '';
+  document.getElementById('searchArtistInput').value = artist || '';
+  document.getElementById('searchDurDisplay').textContent = formatDuration(duration);
   document.getElementById('searchResults').innerHTML = '<div class="loading">搜索中...</div>';
   document.getElementById('searchModal').classList.add('active');
   try {
     const durationMs = duration < 10000 ? duration * 1000 : duration;
-    const params = new URLSearchParams({ title: title, artist: artist, duration: String(durationMs) });
+    const params = new URLSearchParams({ title, artist, duration: String(durationMs) });
+    const data = await pluginApi('/search?' + params.toString());
+    renderSearchResults(data.results || []);
+  } catch (e) {
+    document.getElementById('searchResults').innerHTML = '<div style="color:red;text-align:center;padding:20px">搜索失败: ' + e.message + '</div>';
+  }
+}
+
+async function doEditSearch() {
+  const title = document.getElementById('searchTitleInput').value.trim();
+  const artist = document.getElementById('searchArtistInput').value.trim();
+  if (!title) { toast('请输入歌名', 'error'); return; }
+  document.getElementById('searchResults').innerHTML = '<div class="loading">搜索中...</div>';
+  try {
+    const durationMs = currentSongDuration < 10000 ? currentSongDuration * 1000 : currentSongDuration;
+    const params = new URLSearchParams({ title, artist, duration: String(durationMs) });
     const data = await pluginApi('/search?' + params.toString());
     renderSearchResults(data.results || []);
   } catch (e) {
@@ -677,6 +705,8 @@ function closeModal(id) {
 }
 
 document.getElementById('songSearchInput').addEventListener('input', onSearchInput);
+document.getElementById('searchTitleInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') doEditSearch(); });
+document.getElementById('searchArtistInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') doEditSearch(); });
 loadSongs();
 </script>
 </body>
