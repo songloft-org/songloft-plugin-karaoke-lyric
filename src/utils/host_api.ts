@@ -34,20 +34,17 @@ export async function attachLyricsToSong(
       'Content-Type': 'application/json',
     };
 
-    await fetch(`${hostUrl}/api/v1/songs/${songId}/lyrics`, {
-      method: 'DELETE',
-      headers,
-    });
-
-    const content = payload.lxlyric || payload.lyric || '';
-    const body = JSON.stringify({
-      lyric_source: 'cached',
-      lyric: content,
-    });
+    const body: Record<string, string> = {
+      lyric_source: payload.lyric_source || 'scraped',
+      lyric: payload.lyric || '',
+    };
+    if (payload.tlyric) body.tlyric = payload.tlyric;
+    if (payload.rlyric) body.rlyric = payload.rlyric;
+    if (payload.lxlyric) body.lxlyric = payload.lxlyric;
     const resp = await fetch(`${hostUrl}/api/v1/songs/${songId}/lyrics`, {
       method: 'PUT',
       headers,
-      body,
+      body: JSON.stringify(body),
     });
     return resp.status === 200;
   } catch (e) {

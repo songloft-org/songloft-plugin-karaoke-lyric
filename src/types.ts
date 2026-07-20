@@ -92,6 +92,7 @@ export interface AttachRequest {
 }
 
 export interface LyricPayload {
+  lyric_source?: string;
   lyric: string;
   tlyric?: string;
   rlyric?: string;

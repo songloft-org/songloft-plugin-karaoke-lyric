@@ -11,6 +11,7 @@ export function createAttachHandler() {
     }
 
     const payload: LyricPayload = {
+      lyric_source: body.lyric_source || 'scraped',
       lyric: body.lyric || '',
     };
     if (body.tlyric) payload.tlyric = body.tlyric;
