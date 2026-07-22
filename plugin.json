@@ -16,5 +16,7 @@
     "fs",
     "command"
   ],
-  "icon": "icon.svg"
+  "icon": "icon.svg",
+  "updateUrl": "https://raw.githubusercontent.com/songloft-org/songloft-plugin-karaoke-lyric/main/plugin.json",
+  "download_url": "https://github.com/songloft-org/songloft-plugin-karaoke-lyric/releases/download/v0.0.2/karaoke-lyric.jsplugin.zip"
 }
