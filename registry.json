@@ -1,0 +1,7 @@
+{
+  "name": "逐字歌词",
+  "includes": [],
+  "plugins": [
+    "https://raw.githubusercontent.com/songloft-org/songloft-plugin-karaoke-lyric/main/plugin.json"
+  ]
+}
