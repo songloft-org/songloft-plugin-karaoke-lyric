@@ -41,11 +41,11 @@ jobs:
       - name: Update plugin.json download_url
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          ENTRY_PATH=$(node -p "require('./plugin.json').entryPath")
           node -e "
             const fs = require('fs');
             const m = JSON.parse(fs.readFileSync('plugin.json','utf8'));
-            m.download_url = 'https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/' + ENTRY_PATH + '.jsplugin.zip';
+            const e = m.entryPath;
+            m.download_url = 'https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/' + e + '.jsplugin.zip';
             fs.writeFileSync('plugin.json', JSON.stringify(m, null, 2) + '\n');
           "
           echo "download_url updated for v$VERSION"
