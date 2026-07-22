@@ -1,7 +1,7 @@
 import { HTTPRequest, HTTPResponse, jsonResponse } from '@songloft/plugin-sdk';
 import { SourceEngine } from '../sources/engine';
 import { parseBody } from '../utils/host_api';
-import { SOURCE_LABELS } from '../types';
+import { Source, SOURCE_LABELS } from '../types';
 
 export function createScrapeHandler(engine: SourceEngine) {
   return async (req: HTTPRequest): Promise<HTTPResponse> => {
@@ -9,12 +9,13 @@ export function createScrapeHandler(engine: SourceEngine) {
     const title = body.title || '';
     const artist = body.artist || '';
     const duration = body.duration || 0;
+    const source = body.source as Source | undefined;
 
     if (!title) {
       return jsonResponse({ error: 'title is required' }, 400);
     }
 
-    const result = await engine.scrapeBest(title, artist, duration);
+    const result = await engine.scrapeBest(title, artist, duration, source);
 
     if (!result) {
       return jsonResponse({

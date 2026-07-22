@@ -116,9 +116,12 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
 .header-bar .count { font-size: 14px; color: var(--text-2); }
 
 .scraper-form { display: flex; gap: 10px; flex-wrap: wrap; }
-.scraper-form input { flex: 1; min-width: 120px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; min-height: 40px; }
-.scraper-form input:focus { border-color: var(--primary); }
+.scraper-form input, .scraper-form select { flex: 1; min-width: 120px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; min-height: 40px; background: var(--card); }
+.scraper-form input:focus, .scraper-form select:focus { border-color: var(--primary); }
 .scraper-form .btn { flex-shrink: 0; }
+
+select.source-select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; min-height: 36px; background: var(--card); cursor: pointer; }
+select.source-select:focus { border-color: var(--primary); }
 
 @media (max-width: 768px) {
   .container { padding: 12px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
@@ -214,7 +217,11 @@ pre { background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 13px; m
 
       <div style="margin-bottom:10px">
         <strong style="font-size:14px">请求地址</strong>
-        <pre style="margin-top:4px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px">{plugin_base}/open-scrape</pre>
+        <button class="btn btn-outline btn-xs" onclick="autoFillBaseUrl()" style="margin-left:8px;vertical-align:middle">自动填充</button>
+        <div style="margin-top:4px;display:flex;align-items:flex-start;gap:4px">
+          <pre id="requestAddressPre" style="flex:1;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px;margin:0">{plugin_base}/open-scrape</pre>
+          <button onclick="copyRequestAddress()" style="border:none;background:transparent;cursor:pointer;padding:8px;border-radius:4px;font-size:16px;color:#999;line-height:1;flex-shrink:0" title="复制到剪贴板">📋</button>
+        </div>
       </div>
 
       <div style="margin-bottom:10px">
@@ -243,6 +250,7 @@ Authorization: Bearer &lt;token&gt;</pre>
             <tr><td style="padding:6px 8px;border:1px solid #eee">title</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">是</td><td style="padding:6px 8px;border:1px solid #eee">歌曲名</td></tr>
             <tr><td style="padding:6px 8px;border:1px solid #eee">artist</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">歌手名</td></tr>
             <tr><td style="padding:6px 8px;border:1px solid #eee">duration</td><td style="padding:6px 8px;border:1px solid #eee">number</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">时长（毫秒），用于提高匹配准确度</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">source</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">来源标识（qm/kg/ne/lrclib），为空时自动遍历全部</td></tr>
           </tbody>
         </table>
       </div>
@@ -303,13 +311,20 @@ Authorization: Bearer &lt;token&gt;</pre>
   </div>
 
   <div class="card">
-    <div class="card-header">手动搜索</div>
+    <div class="card-header">接口测试</div>
     <div class="card-body">
       <div class="scraper-form">
         <input id="scrapeTitle" placeholder="歌曲名 (必填)">
         <input id="scrapeArtist" placeholder="歌手">
         <input id="scrapeDuration" type="number" placeholder="时长(毫秒)">
-        <button class="btn btn-primary" onclick="quickScrape()">搜索</button>
+        <select id="scrapeSource" class="source-select" style="flex:0 0 auto;min-width:100px">
+          <option value="">全部来源</option>
+          <option value="qm">小秋</option>
+          <option value="kg">小枸</option>
+          <option value="ne">小芸</option>
+          <option value="lrclib">Lrclib</option>
+        </select>
+        <button class="btn btn-primary" onclick="testOpenScrape()">发送请求</button>
       </div>
       <div id="quickResult" style="margin-top:12px"></div>
     </div>
@@ -323,6 +338,13 @@ Authorization: Bearer &lt;token&gt;</pre>
       <input id="searchTitleInput" placeholder="歌名" style="flex:2;min-width:140px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none;min-height:36px">
       <input id="searchArtistInput" placeholder="歌手" style="flex:1;min-width:100px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none;min-height:36px">
       <span id="searchDurDisplay" style="font-size:13px;color:var(--text-2);white-space:nowrap;padding:0 4px">--:--</span>
+      <select id="searchSource" class="source-select" style="min-width:90px">
+        <option value="">全部</option>
+        <option value="qm">小秋</option>
+        <option value="kg">小枸</option>
+        <option value="ne">小芸</option>
+        <option value="lrclib">Lrclib</option>
+      </select>
       <button class="btn btn-primary btn-sm" onclick="doEditSearch()">搜索</button>
     </div>
     <div id="searchResults"></div>
@@ -392,6 +414,25 @@ async function af(u, o) {
 function pluginBase() {
   var p = window.location.pathname;
   return p.endsWith('/') ? p : p + '/';
+}
+
+function autoFillBaseUrl() {
+  var pre = document.getElementById('requestAddressPre');
+  if (!pre) return;
+  var baseUrl = window.location.origin + window.location.pathname.replace(/\/+$/, '');
+  pre.textContent = pre.textContent.replace(/\{plugin_base\}/g, baseUrl);
+  toast('已自动填充: ' + baseUrl, 'success');
+}
+
+function copyRequestAddress() {
+  var pre = document.getElementById('requestAddressPre');
+  if (!pre) return;
+  var text = pre.textContent;
+  navigator.clipboard.writeText(text).then(function () {
+    toast('已复制: ' + text, 'success');
+  }).catch(function () {
+    toast('复制失败', 'error');
+  });
 }
 
 async function pluginApi(path, options) {
@@ -573,7 +614,9 @@ async function searchSong(songId, title, artist, duration) {
   document.getElementById('searchModal').classList.add('active');
   try {
     const durationMs = duration < 10000 ? duration * 1000 : duration;
-    const params = new URLSearchParams({ title, artist, duration: String(durationMs) });
+    var params = new URLSearchParams({ title, artist, duration: String(durationMs) });
+    var src = document.getElementById('searchSource').value;
+    if (src) params.set('source', src);
     const data = await pluginApi('/search?' + params.toString());
     renderSearchResults(data.results || []);
   } catch (e) {
@@ -588,7 +631,9 @@ async function doEditSearch() {
   document.getElementById('searchResults').innerHTML = '<div class="loading">搜索中...</div>';
   try {
     const durationMs = currentSongDuration < 10000 ? currentSongDuration * 1000 : currentSongDuration;
-    const params = new URLSearchParams({ title, artist, duration: String(durationMs) });
+    var params = new URLSearchParams({ title, artist, duration: String(durationMs) });
+    var src = document.getElementById('searchSource').value;
+    if (src) params.set('source', src);
     const data = await pluginApi('/search?' + params.toString());
     renderSearchResults(data.results || []);
   } catch (e) {
@@ -973,31 +1018,70 @@ async function scrapeSelected() {
   loadSongs();
 }
 
-async function quickScrape() {
+async function testOpenScrape() {
   var title = document.getElementById('scrapeTitle').value.trim();
   var artist = document.getElementById('scrapeArtist').value.trim();
   var duration = parseInt(document.getElementById('scrapeDuration').value || '0', 10);
+  var source = document.getElementById('scrapeSource').value;
   if (!title) { toast('请输入歌曲名', 'error'); return; }
-  document.getElementById('quickResult').innerHTML = '<div class="loading">搜索中...</div>';
+  var resultDiv = document.getElementById('quickResult');
+  resultDiv.innerHTML = '<div class="loading">请求中...</div>';
+  var baseUrl = window.location.origin + window.location.pathname.replace(/\/+$/, '');
+  var url = baseUrl + '/open-scrape';
+  var body = { title: title };
+  if (artist) body.artist = artist;
+  if (duration) body.duration = duration;
+  if (source) body.source = source;
+  var token = _token();
   try {
-    var data = await pluginApi('/scrape', {
+    var resp = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify({ title: title, artist: artist, duration: duration }),
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}) },
+      body: JSON.stringify(body),
     });
-    if (data.success) {
-      document.getElementById('quickResult').innerHTML = '';
-      previewData = data;
-      previewIsScrape = true;
-      currentSongId = null;
-      var durStr = data.match_duration ? formatDuration(data.match_duration) : '--:--';
-      document.getElementById('previewModalTitle').textContent = '来源: ' + data.source_label + ' | 时长: ' + durStr + ' | 匹配: ' + (data.match_title || '') + ' - ' + (data.match_artist || '') + ' (' + data.score + '%)';
-      renderPreviewView();
-      document.getElementById('previewModal').classList.add('active');
+    var data = await resp.json();
+    var html = '';
+    html += '<div style="margin-bottom:14px">';
+    html += '<div style="font-weight:600;font-size:13px;margin-bottom:6px">📤 请求</div>';
+    html += '<div style="background:#f5f5f5;border-radius:6px;padding:10px;font-size:12px;line-height:1.7">';
+    html += '<div><span style="color:#666">URL:</span> <span style="color:#007aff">POST ' + escHtml(url) + '</span></div>';
+    html += '<div><span style="color:#666">Content-Type:</span> application/json</div>';
+    if (token) html += '<div><span style="color:#666">Authorization:</span> Bearer ' + token.slice(0, 10) + '…</div>';
+    html += '<div style="margin-top:4px"><span style="color:#666">Body:</span></div>';
+    html += '<pre style="margin:4px 0 0;padding:8px;background:#fff;border-radius:4px;font-size:11px">' + escHtml(JSON.stringify(body, null, 2)) + '</pre>';
+    html += '</div></div>';
+    html += '<div>';
+    html += '<div style="font-weight:600;font-size:13px;margin-bottom:6px">📥 响应</div>';
+    if (resp.ok && data.success) {
+      html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px;font-size:13px">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+      html += '<span class="badge badge-green">成功</span>';
+      html += '<span class="source-tag source-' + data.source + '">' + escHtml(data.source_label) + '</span>';
+      html += '<span style="font-weight:600">' + escHtml(data.match_title) + '</span>';
+      html += '<span style="color:var(--text-2)">' + escHtml(data.match_artist) + '</span>';
+      html += '<span style="color:var(--text-2)">' + formatDuration(data.match_duration) + '</span>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:16px;font-size:12px;color:var(--text-2);flex-wrap:wrap">';
+      html += '<span>匹配度: ' + data.score + '%</span>';
+      html += '<span>歌词类型: ' + (data.lyrics_type === 'verbatim' ? '逐字' : '逐行') + '</span>';
+      html += '<span>行数: ' + data.line_count + '</span>';
+      html += '</div>';
+      if (data.lyric) html += '<div style="margin-top:8px"><span style="font-weight:600;font-size:12px">原词 LRC:</span>' + renderLrcPreview(data.lyric, 200) + '</div>';
+      if (data.tlyric) html += '<div style="margin-top:8px"><span style="font-weight:600;font-size:12px">翻译 LRC:</span>' + renderLrcPreview(data.tlyric, 150) + '</div>';
+      if (data.lxlyric) html += '<div style="margin-top:8px"><span style="font-weight:600;font-size:12px">逐字时间轴:</span><pre style="max-height:120px;font-size:11px;line-height:1.4;margin-top:4px">' + escHtml(data.lxlyric) + '</pre></div>';
+      html += '<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;color:var(--text-2)">查看原始响应</summary>';
+      html += '<pre style="margin-top:6px;background:#f8f9fa;padding:8px;border-radius:4px;font-size:11px;max-height:200px">' + escHtml(JSON.stringify(data, null, 2)) + '</pre></details>';
+      html += '</div>';
     } else {
-      document.getElementById('quickResult').innerHTML = '<div style="padding:15px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#dc2626;">' + (data.message || '未找到匹配') + '</div>';
+      html += '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px;font-size:13px">';
+      html += '<div style="color:#dc2626;font-weight:600">' + escHtml(data.message || data.error || '请求失败 (HTTP ' + resp.status + ')') + '</div>';
+      html += '<pre style="margin-top:8px;background:#fff;padding:8px;border-radius:4px;font-size:11px;max-height:200px;color:#333">' + escHtml(JSON.stringify(data, null, 2)) + '</pre>';
+      html += '</div>';
     }
+    html += '</div>';
+    resultDiv.innerHTML = html;
   } catch (e) {
-    document.getElementById('quickResult').innerHTML = '<div style="color:red;text-align:center;padding:12px">' + e.message + '</div>';
+    resultDiv.innerHTML = '<div style="padding:15px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#dc2626;">请求失败: ' + escHtml(e.message) + '</div>';
   }
 }
 

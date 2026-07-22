@@ -19,17 +19,24 @@ export class SourceEngine {
     ];
   }
 
+  getSource(source: Source): BaseSource | undefined {
+    return this.sources.find(s => s.source === source);
+  }
+
   async searchAll(
     title: string,
     artist: string,
     duration: number,
+    source?: Source,
   ): Promise<SearchResult[]> {
     const keyword = `${title} ${artist}`.trim();
     const allResults: SearchResult[] = [];
     const errors: string[] = [];
 
+    const targets = source ? [this.getSource(source)].filter(Boolean) as BaseSource[] : this.sources;
+
     await Promise.all(
-      this.sources.map(async (src) => {
+      targets.map(async (src) => {
         try {
           const results = await src.search(keyword);
           for (const r of results) {
@@ -87,8 +94,9 @@ export class SourceEngine {
     title: string,
     artist: string,
     duration: number,
+    source?: Source,
   ): Promise<{ result: SearchResult; lyrics: FetchedLyrics } | null> {
-    const results = await this.searchAll(title, artist, duration);
+    const results = await this.searchAll(title, artist, duration, source);
     const best = pickBest(results);
     if (!best) return null;
     const lyrics = await this.fetchLyrics(best.source, {
