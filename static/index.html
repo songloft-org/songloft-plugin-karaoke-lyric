@@ -169,7 +169,10 @@ select.source-select:focus { border-color: var(--primary); }
 </head>
 <body>
 
-<div class="page-title">逐字歌词</div>
+<div class="page-title" style="display:flex;align-items:center;justify-content:space-between">
+  <span>逐字歌词</span>
+  <button onclick="openSettingsModal()" style="background:none;border:none;font-size:22px;cursor:pointer;padding:4px;line-height:1;border-radius:6px;color:var(--text-2)" title="关于">⚙️</button>
+</div>
 
 <div class="tab-header">
   <button class="tab-btn active" onclick="switchTab('songs')">歌曲列表</button>
@@ -366,6 +369,37 @@ Authorization: Bearer &lt;token&gt;</pre>
   </div>
 </div>
 
+<div class="modal" id="settingsModal" onclick="if(event.target===this)closeModal('settingsModal')">
+  <div class="modal-content" style="max-width:420px">
+    <div class="modal-title">关于</div>
+    <div style="font-size:13px;line-height:1.8">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">版本</span>
+        <span id="settingsVersion">加载中...</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">许可</span>
+        <span>Apache-2.0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">作者</span>
+        <span>songloft</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">仓库</span>
+        <a href="https://github.com/songloft-org/songloft-plugin-karaoke-lyric" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none">GitHub ↗</a>
+      </div>
+      <div style="padding:12px 0">
+        <div style="font-weight:600;margin-bottom:6px">致谢</div>
+        <div style="color:var(--text-2)">歌词数据来源：小秋、小枸、小芸、Lrclib</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('settingsModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
 <nav class="tab-bar" id="tabBar">
   <button class="tab-item active" onclick="switchTab('songs')">
     <span class="tab-icon">🎵</span>
@@ -374,6 +408,9 @@ Authorization: Bearer &lt;token&gt;</pre>
   <button class="tab-item" onclick="switchTab('scraper')">
     <span class="tab-icon">🔗</span>
     <span>外部接口</span>
+  </button>
+  <button class="tab-item" onclick="openSettingsModal()">
+    <span class="tab-icon">⚙️</span>
   </button>
 </nav>
 
@@ -1151,6 +1188,19 @@ function jumpPage() {
   var totalPages = Math.ceil(totalSongs / PAGE_SIZE) || 1;
   if (p > totalPages) p = totalPages;
   goPage(p);
+}
+
+async function openSettingsModal() {
+  document.getElementById('settingsModal').classList.add('active');
+  var verEl = document.getElementById('settingsVersion');
+  if (verEl.textContent === '加载中...') {
+    try {
+      var data = await pluginApi('/info');
+      verEl.textContent = data.version || '-';
+    } catch (e) {
+      verEl.textContent = '-';
+    }
+  }
 }
 
 function closeModal(id) {

@@ -1,14 +1,20 @@
 {
   "$schema": "https://raw.githubusercontent.com/songloft-org/plugin-toolchain/main/packages/plugin-builder/src/manifest/manifest.schema.json",
   "name": "逐字歌词",
-  "version": "2026.7.14",
+  "version": "0.0.2",
   "description": "从多个平台自动刮削歌词并关联入库",
-  "author": "songloft",
-  "homepage": "",
-  "license": "MIT",
+  "author": "boluofan",
+  "homepage": "https://github.com/songloft-org/songloft-plugin-karaoke-lyric",
+  "license": "Apache-2.0",
   "entryPath": "karaoke-lyric",
   "main": "main.js",
   "minHostVersion": "2.0.0",
-  "permissions": ["storage", "songs.read", "songs.write", "fs", "command"],
+  "permissions": [
+    "storage",
+    "songs.read",
+    "songs.write",
+    "fs",
+    "command"
+  ],
   "icon": "icon.svg"
 }

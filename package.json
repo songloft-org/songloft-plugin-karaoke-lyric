@@ -1,11 +1,13 @@
 {
   "name": "songloft-plugin-karaoke-lyric",
-  "version": "2026.7.14",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/prebuild.mjs",
     "build": "songloft-plugin build",
     "dev": "songloft-plugin dev",
-    "validate": "songloft-plugin validate"
+    "validate": "songloft-plugin validate",
+    "version": "node scripts/prebuild.mjs"
   },
   "devDependencies": {
     "@songloft/plugin-builder": "^2.5.0",
