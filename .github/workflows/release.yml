@@ -38,19 +38,24 @@ jobs:
           fi
           echo "Version validated: $PKG_VERSION"
 
+      - name: Switch to main branch
+        run: |
+          git fetch origin main
+          git checkout main
+
       - name: Update plugin.json download_url
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          ENTRY_PATH=$(node -p "require('./plugin.json').entryPath")
           node -e "
             const fs = require('fs');
             const m = JSON.parse(fs.readFileSync('plugin.json','utf8'));
-            const e = m.entryPath;
-            m.download_url = 'https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/' + e + '.jsplugin.zip';
+            m.download_url = 'https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$ENTRY_PATH.jsplugin.zip';
             fs.writeFileSync('plugin.json', JSON.stringify(m, null, 2) + '\n');
           "
           echo "download_url updated for v$VERSION"
 
-      - name: Commit plugin.json
+      - name: Commit plugin.json back to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
