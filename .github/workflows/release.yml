@@ -62,7 +62,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add plugin.json
+          git add plugin.json package-lock.json
           git diff --cached --quiet || git commit -m "chore: update download_url for ${{ github.ref_name }} [skip ci]"
           git push
 
