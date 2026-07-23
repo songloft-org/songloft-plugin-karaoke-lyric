@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/songloft-org/plugin-toolchain/main/packages/plugin-builder/src/manifest/manifest.schema.json",
   "name": "逐字歌词",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "从多个平台自动刮削歌词并关联入库",
   "author": "boluofan",
   "homepage": "https://github.com/songloft-org/songloft-plugin-karaoke-lyric",
@@ -18,5 +18,5 @@
   ],
   "icon": "icon.svg",
   "updateUrl": "https://raw.githubusercontent.com/songloft-org/songloft-plugin-karaoke-lyric/main/plugin.json",
-  "download_url": "https://github.com/songloft-org/songloft-plugin-karaoke-lyric/releases/download/v0.0.4/karaoke-lyric.jsplugin.zip"
+  "download_url": "https://github.com/songloft-org/songloft-plugin-karaoke-lyric/releases/download/v0.0.5/karaoke-lyric.jsplugin.zip"
 }
