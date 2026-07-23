@@ -1,6 +1,6 @@
 {
   "name": "songloft-plugin-karaoke-lyric",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "scripts": {
     "prebuild": "node scripts/prebuild.mjs",

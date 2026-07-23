@@ -161,6 +161,13 @@ select.source-select:focus { border-color: var(--primary); }
 .lyric-time { color: #909399; margin-right: 8px; font-family: monospace; white-space: nowrap; }
 .edit-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 12px; background: #f5f7fa; border-radius: 6px; }
 
+.switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+.switch input { opacity:0; width:0; height:0; }
+.switch .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#ccc; transition:.3s; border-radius:24px; }
+.switch .slider::before { content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.3s; border-radius:50%; }
+.switch input:checked + .slider { background:var(--primary); }
+.switch input:checked + .slider::before { transform:translateX(20px); }
+
 @media (min-width: 769px) {
   .song-table th, .song-table td { padding: 10px 16px; }
   .card-body { padding: 16px 20px; }
@@ -371,7 +378,19 @@ Authorization: Bearer &lt;token&gt;</pre>
 
 <div class="modal" id="settingsModal" onclick="if(event.target===this)closeModal('settingsModal')">
   <div class="modal-content" style="max-width:420px">
-    <div class="modal-title">关于</div>
+    <div class="modal-title">设置</div>
+    <div style="padding:4px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:600;font-size:14px">自动补全歌词</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px">开启后自动为无歌词的歌曲搜索歌词</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="providerEnabled" onchange="onProviderToggle()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
     <div style="font-size:13px;line-height:1.8">
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="color:var(--text-2)">版本</span>
@@ -1190,8 +1209,30 @@ function jumpPage() {
   goPage(p);
 }
 
+async function loadProviderConfig() {
+  try {
+    var data = await pluginApi('/provider-config');
+    document.getElementById('providerEnabled').checked = data.enabled;
+  } catch (e) { /* ignore */ }
+}
+
+async function onProviderToggle() {
+  var enabled = document.getElementById('providerEnabled').checked;
+  try {
+    await pluginApi('/provider-config', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled: enabled }),
+    });
+    toast(enabled ? '自动补全歌词已开启' : '自动补全歌词已关闭');
+  } catch (e) {
+    toast('设置失败: ' + e.message, 'error');
+    document.getElementById('providerEnabled').checked = !enabled;
+  }
+}
+
 async function openSettingsModal() {
   document.getElementById('settingsModal').classList.add('active');
+  loadProviderConfig();
   var verEl = document.getElementById('settingsVersion');
   if (verEl.textContent === '加载中...') {
     try {

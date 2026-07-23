@@ -8,6 +8,7 @@ import { createScrapeHandler } from './handlers/scrape';
 import { createOpenScrapeHandler } from './handlers/open-scrape';
 import { createSongsHandler } from './handlers/songs';
 import { createWebHandler } from './handlers/web';
+import { createLyricSearchHandler } from './handlers/lyric-search';
 
 export function createRouter(engine: SourceEngine) {
   const router = sdkRouter();
@@ -19,6 +20,7 @@ export function createRouter(engine: SourceEngine) {
   router.post('/attach', createAttachHandler());
   router.post('/scrape', createScrapeHandler(engine));
   router.post('/open-scrape', createOpenScrapeHandler(engine));
+  router.get('/lyric-search', createLyricSearchHandler(engine));
   router.get('/', createWebHandler());
 
   return router;
