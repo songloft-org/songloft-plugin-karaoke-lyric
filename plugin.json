@@ -18,5 +18,5 @@
   ],
   "icon": "icon.svg",
   "updateUrl": "https://raw.githubusercontent.com/songloft-org/songloft-plugin-karaoke-lyric/main/plugin.json",
-  "download_url": "https://github.com/songloft-org/songloft-plugin-karaoke-lyric/releases/download/v0.0.6/karaoke-lyric.jsplugin.zip"
+  "download_url": "https://github.com/songloft-org/songloft-plugin-karaoke-lyric/releases/download/v0.0.7/karaoke-lyric.jsplugin.zip"
 }
