@@ -4,7 +4,7 @@ import { QQSource } from './qq';
 import { KuGouSource } from './kugou';
 import { NetEaseSource } from './netease';
 import { LrclibSource } from './lrclib';
-import { computeScore, pickBest } from '../utils/scorer';
+import { computeScore, pickBest, titleScore } from '../utils/scorer';
 import { lyricsDataToLrc } from '../utils/lrc_builder';
 
 /** 将请求中的 lyrics_type 规约为合法偏好值，非法或缺省返回 undefined（自动）。 */
@@ -106,6 +106,7 @@ export class SourceEngine {
     duration: number,
     source?: Source,
     lyricsType?: LyricsTypePreference,
+    strict?: boolean,
   ): Promise<{ result: SearchResult; lyrics: FetchedLyrics } | null> {
     const results = await this.searchAll(title, artist, duration, source);
     let candidates = results;
@@ -116,8 +117,23 @@ export class SourceEngine {
       );
       if (wordCapable.length > 0) candidates = wordCapable;
     }
+    // 严格模式（主程序自动补全路径）：必须标题真实匹配，否则宁缺毋滥——
+    // 普通阈值 30 仅靠歌手同名即可过线，会把错误歌词静默写入库中
+    if (strict) {
+      candidates = candidates.filter(r => titleScore(title, r.title) >= 30);
+      const best = pickBest(candidates, 50);
+      if (!best) return null;
+      return this.fetchBestLyrics(best, lyricsType);
+    }
     const best = pickBest(candidates);
     if (!best) return null;
+    return this.fetchBestLyrics(best, lyricsType);
+  }
+
+  private async fetchBestLyrics(
+    best: SearchResult,
+    lyricsType?: LyricsTypePreference,
+  ): Promise<{ result: SearchResult; lyrics: FetchedLyrics } | null> {
     const lyrics = await this.fetchLyrics(
       best.source,
       {

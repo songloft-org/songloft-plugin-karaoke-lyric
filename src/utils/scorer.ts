@@ -4,7 +4,7 @@ export function normalizeStr(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, '');
 }
 
-function titleScore(searchTitle: string, resultTitle: string): number {
+export function titleScore(searchTitle: string, resultTitle: string): number {
   const s = normalizeStr(searchTitle);
   const r = normalizeStr(resultTitle);
   if (s === r) return 50;
