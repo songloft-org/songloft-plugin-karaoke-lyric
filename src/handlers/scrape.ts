@@ -1,5 +1,5 @@
 import { HTTPRequest, HTTPResponse, jsonResponse } from '@songloft/plugin-sdk';
-import { SourceEngine } from '../sources/engine';
+import { SourceEngine, normalizeLyricsType } from '../sources/engine';
 import { parseBody } from '../utils/host_api';
 import { Source, SOURCE_LABELS } from '../types';
 
@@ -15,7 +15,13 @@ export function createScrapeHandler(engine: SourceEngine) {
       return jsonResponse({ error: 'title is required' }, 400);
     }
 
-    const result = await engine.scrapeBest(title, artist, duration, source);
+    const result = await engine.scrapeBest(
+      title,
+      artist,
+      duration,
+      source,
+      normalizeLyricsType(body.lyrics_type),
+    );
 
     if (!result) {
       return jsonResponse({

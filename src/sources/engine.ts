@@ -1,4 +1,4 @@
-import { Source, SearchResult, SongInfo, MultiLyrics, FetchedLyrics } from '../types';
+import { Source, SearchResult, SongInfo, MultiLyrics, FetchedLyrics, LyricsTypePreference } from '../types';
 import { BaseSource } from './base';
 import { QQSource } from './qq';
 import { KuGouSource } from './kugou';
@@ -6,6 +6,11 @@ import { NetEaseSource } from './netease';
 import { LrclibSource } from './lrclib';
 import { computeScore, pickBest } from '../utils/scorer';
 import { lyricsDataToLrc } from '../utils/lrc_builder';
+
+/** 将请求中的 lyrics_type 规约为合法偏好值，非法或缺省返回 undefined（自动）。 */
+export function normalizeLyricsType(v: unknown): LyricsTypePreference | undefined {
+  return v === 'line' || v === 'verbatim' ? v : undefined;
+}
 
 export class SourceEngine {
   private sources: BaseSource[] = [];
@@ -68,19 +73,24 @@ export class SourceEngine {
     return allResults;
   }
 
-  async fetchLyrics(source: Source, info: SongInfo): Promise<FetchedLyrics | null> {
+  async fetchLyrics(
+    source: Source,
+    info: SongInfo,
+    lyricsType?: LyricsTypePreference,
+  ): Promise<FetchedLyrics | null> {
     const src = this.sources.find(s => s.source === source);
     if (!src) return null;
     try {
       const multi = await src.getLyrics(info);
       const { lyric, tlyric, rlyric, lxlyric } = lyricsDataToLrc(multi);
-      const hasWord = lxlyric.length > 0;
+      // 'line' 偏好：丢弃逐字时间轴，仅保留逐行歌词
+      const finalLx = lyricsType === 'line' ? '' : lxlyric;
       return {
-        lyrics_type: hasWord ? 'verbatim' : 'line',
+        lyrics_type: finalLx.length > 0 ? 'verbatim' : 'line',
         lyric,
         tlyric,
         rlyric,
-        lxlyric,
+        lxlyric: finalLx,
         line_count: multi.orig.length,
         source,
       };
@@ -95,19 +105,32 @@ export class SourceEngine {
     artist: string,
     duration: number,
     source?: Source,
+    lyricsType?: LyricsTypePreference,
   ): Promise<{ result: SearchResult; lyrics: FetchedLyrics } | null> {
     const results = await this.searchAll(title, artist, duration, source);
-    const best = pickBest(results);
+    let candidates = results;
+    // 'verbatim' 偏好：优先选用能提供逐字歌词的源（小秋/小枸）
+    if (lyricsType === 'verbatim') {
+      const wordCapable = results.filter(
+        r => r.source === Source.QM || r.source === Source.KG,
+      );
+      if (wordCapable.length > 0) candidates = wordCapable;
+    }
+    const best = pickBest(candidates);
     if (!best) return null;
-    const lyrics = await this.fetchLyrics(best.source, {
-      title: best.title,
-      artist: best.artist,
-      album: best.album,
-      duration: best.duration,
-      song_id: best.song_id,
-      mid: best.mid,
-      hash: best.hash,
-    });
+    const lyrics = await this.fetchLyrics(
+      best.source,
+      {
+        title: best.title,
+        artist: best.artist,
+        album: best.album,
+        duration: best.duration,
+        song_id: best.song_id,
+        mid: best.mid,
+        hash: best.hash,
+      },
+      lyricsType,
+    );
     if (!lyrics) return null;
     return { result: best, lyrics };
   }

@@ -201,7 +201,17 @@ select.source-select:focus { border-color: var(--primary); }
     </div>
     <div class="list-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
       <span class="count" id="songCount" style="font-size:14px;color:var(--text-2);font-weight:600">加载中...</span>
-      <button class="btn btn-primary btn-sm" onclick="scrapeSelected()">批量刮削选中</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span id="selectionInfo" style="font-size:13px;color:var(--primary);font-weight:600;display:none"></span>
+        <select id="batchLyricsType" class="source-select" style="min-height:32px;font-size:13px;padding:4px 8px" title="批量刮削歌词类型">
+          <option value="">歌词:自动</option>
+          <option value="line">歌词:仅逐行</option>
+          <option value="verbatim">歌词:逐字优先</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="selectAllSongs()">全选</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearSelection()" id="clearSelBtn" style="display:none">清除</button>
+        <button class="btn btn-primary btn-sm" onclick="scrapeSelected()">批量刮削选中</button>
+      </div>
     </div>
     <table class="song-table">
       <thead><tr>
@@ -261,6 +271,7 @@ Authorization: Bearer &lt;token&gt;</pre>
             <tr><td style="padding:6px 8px;border:1px solid #eee">artist</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">歌手名</td></tr>
             <tr><td style="padding:6px 8px;border:1px solid #eee">duration</td><td style="padding:6px 8px;border:1px solid #eee">number</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">时长（毫秒），用于提高匹配准确度</td></tr>
             <tr><td style="padding:6px 8px;border:1px solid #eee">source</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">来源标识（qm/kg/ne/lrclib），为空时自动遍历全部</td></tr>
+            <tr><td style="padding:6px 8px;border:1px solid #eee">lyrics_type</td><td style="padding:6px 8px;border:1px solid #eee">string</td><td style="padding:6px 8px;border:1px solid #eee">否</td><td style="padding:6px 8px;border:1px solid #eee">歌词类型偏好：line（仅逐行，不返回逐字时间轴）/ verbatim（逐字优先，偏向小秋、小枸源），为空时自动</td></tr>
           </tbody>
         </table>
       </div>
@@ -334,6 +345,11 @@ Authorization: Bearer &lt;token&gt;</pre>
           <option value="ne">小芸</option>
           <option value="lrclib">Lrclib</option>
         </select>
+        <select id="scrapeLyricsType" class="source-select" style="flex:0 0 auto;min-width:110px">
+          <option value="">类型:自动</option>
+          <option value="line">仅逐行</option>
+          <option value="verbatim">逐字优先</option>
+        </select>
         <button class="btn btn-primary" onclick="testOpenScrape()">发送请求</button>
       </div>
       <div id="quickResult" style="margin-top:12px"></div>
@@ -369,6 +385,10 @@ Authorization: Bearer &lt;token&gt;</pre>
     <div class="modal-title" id="previewModalTitle">歌词预览</div>
     <div id="previewContent"></div>
     <div class="modal-actions" id="previewActions">
+      <select id="attachLyricsType" class="source-select" style="min-height:32px;font-size:13px;padding:4px 8px;display:none;margin-right:auto" title="入库歌词类型">
+        <option value="">自动（含逐字）</option>
+        <option value="line">仅逐行入库</option>
+      </select>
       <button class="btn btn-success" id="attachBtn" onclick="attachLyrics()" style="display:none">入库</button>
       <button class="btn btn-outline" id="editBtn" onclick="toggleEditMode()" style="display:none">编辑</button>
       <button class="btn btn-secondary" onclick="closeModal('previewModal')">取消</button>
@@ -437,6 +457,8 @@ Authorization: Bearer &lt;token&gt;</pre>
 let currentSongs = [];
 let currentPage = 1;
 let totalSongs = 0;
+// 跨页持久化的选中集合：id -> {id,title,artist,duration}
+let selectedSongs = new Map();
 let searchKeyword = '';
 let noLyricsOnly = false;
 let searchTimer = null;
@@ -586,6 +608,8 @@ async function loadSongs() {
     renderSongTable(songs);
     renderSongCards(songs);
     renderPagination();
+    syncPageCheckboxes();
+    updateSelectionUI();
   } catch (e) {
     document.getElementById('songTableBody').innerHTML = '<tr><td colspan="6" style="color:red;text-align:center;padding:20px">加载失败: ' + e.message + '</td></tr>';
     document.getElementById('songCardBody').innerHTML = '<div style="color:red;text-align:center;padding:20px">加载失败: ' + e.message + '</div>';
@@ -608,7 +632,7 @@ function renderSongTable(songs) {
     const statusHtml = hasLyric ? '<span class="badge badge-green">有</span>' : '<span class="badge badge-red">无</span>';
     const dur = s.duration ? formatDuration(s.duration) : '--:--';
     return '<tr>' +
-      '<td><input type="checkbox" value="' + s.id + '"></td>' +
+      '<td><input type="checkbox" value="' + s.id + '" onchange="toggleSong(this)"></td>' +
       '<td><strong>' + (s.title || '未知') + '</strong></td>' +
       '<td>' + (s.artist || '未知') + '</td>' +
       '<td class="col-dur">' + dur + '</td>' +
@@ -629,7 +653,7 @@ function renderSongCards(songs) {
     const statusHtml = hasLyric ? '<span class="badge badge-green">有</span>' : '<span class="badge badge-red">无</span>';
     const dur = s.duration ? formatDuration(s.duration) : '--:--';
     return '<div class="song-item">' +
-      '<input type="checkbox" value="' + s.id + '" style="width:18px;height:18px;flex-shrink:0">' +
+      '<input type="checkbox" value="' + s.id + '" onchange="toggleSong(this)" style="width:18px;height:18px;flex-shrink:0">' +
       '<div class="song-item-info">' +
       '<div class="song-item-title">' + (s.title || '未知') + '</div>' +
       '<div class="song-item-meta"><span>' + (s.artist || '未知') + '</span><span>' + dur + '</span>' + statusHtml + '</div>' +
@@ -651,13 +675,68 @@ function formatDuration(val) {
   return String(min).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
-function toggleAll(cb) {
-  document.querySelectorAll('#songTableBody input[type="checkbox"], #songCardBody input[type="checkbox"]').forEach(function(c) { c.checked = cb.checked; });
+function toggleSong(cb) {
+  var id = parseInt(cb.value);
+  if (cb.checked) {
+    var song = currentSongs.find(function (s) { return s.id === id; });
+    if (song) selectedSongs.set(id, { id: song.id, title: song.title || '', artist: song.artist || '', duration: song.duration || 0 });
+  } else {
+    selectedSongs.delete(id);
+  }
+  updateSelectionUI();
 }
 
-function getSelectedSongIds() {
-  return Array.from(document.querySelectorAll('#songTableBody input[type="checkbox"]:checked, #songCardBody input[type="checkbox"]:checked'))
-    .map(function(c) { return parseInt(c.value); });
+function toggleAll(cb) {
+  currentSongs.forEach(function (s) {
+    if (cb.checked) selectedSongs.set(s.id, { id: s.id, title: s.title || '', artist: s.artist || '', duration: s.duration || 0 });
+    else selectedSongs.delete(s.id);
+  });
+  syncPageCheckboxes();
+  updateSelectionUI();
+}
+
+// 全选：拉取当前筛选条件下的全部歌曲（跨页）并选中
+function selectAllSongs() {
+  var url = './songs?limit=100000&offset=0';
+  if (searchKeyword) url += '&keyword=' + encodeURIComponent(searchKeyword);
+  if (noLyricsOnly) url += '&no_lyrics=1';
+  af(url).then(function (data) {
+    var songs = data.songs || [];
+    songs.forEach(function (s) { selectedSongs.set(s.id, { id: s.id, title: s.title || '', artist: s.artist || '', duration: s.duration || 0 }); });
+    syncPageCheckboxes();
+    updateSelectionUI();
+    toast('已全选 ' + songs.length + ' 首');
+  }).catch(function (e) { toast('全选失败: ' + e.message, 'error'); });
+}
+
+function clearSelection() {
+  selectedSongs.clear();
+  syncPageCheckboxes();
+  updateSelectionUI();
+}
+
+function syncPageCheckboxes() {
+  document.querySelectorAll('#songTableBody input[type="checkbox"], #songCardBody input[type="checkbox"]').forEach(function (c) {
+    c.checked = selectedSongs.has(parseInt(c.value));
+  });
+}
+
+function updateSelectionUI() {
+  var n = selectedSongs.size;
+  var info = document.getElementById('selectionInfo');
+  var clearBtn = document.getElementById('clearSelBtn');
+  if (info) {
+    info.textContent = '已选 ' + n + ' 首';
+    info.style.display = n > 0 ? '' : 'none';
+  }
+  if (clearBtn) clearBtn.style.display = n > 0 ? '' : 'none';
+  var headerCb = document.querySelector('.song-table thead input[type="checkbox"]');
+  if (headerCb) {
+    var pageIds = currentSongs.map(function (s) { return s.id; });
+    var selectedOnPage = pageIds.filter(function (id) { return selectedSongs.has(id); }).length;
+    headerCb.checked = pageIds.length > 0 && selectedOnPage === pageIds.length;
+    headerCb.indeterminate = selectedOnPage > 0 && selectedOnPage < pageIds.length;
+  }
 }
 
 async function searchSong(songId, title, artist, duration) {
@@ -825,6 +904,7 @@ function renderPreviewView() {
   document.getElementById('previewContent').innerHTML = html;
   document.getElementById('attachBtn').style.display = '';
   document.getElementById('editBtn').style.display = '';
+  document.getElementById('attachLyricsType').style.display = '';
   if (previewIsScrape) {
     document.getElementById('attachBtn').textContent = '下载到本地';
     document.getElementById('attachBtn').onclick = downloadLyrics;
@@ -863,6 +943,7 @@ function toggleEditMode() {
   previewMode = 'edit';
   document.getElementById('editBtn').style.display = 'none';
   document.getElementById('attachBtn').style.display = 'none';
+  document.getElementById('attachLyricsType').style.display = 'none';
   document.getElementById('previewModalTitle').textContent = '编辑歌词';
 
   var raw = previewData.lyric || '';
@@ -984,6 +1065,7 @@ async function previewResult(index) {
   document.getElementById('previewContent').innerHTML = '<div class="loading">获取中...</div>';
   document.getElementById('attachBtn').style.display = 'none';
   document.getElementById('editBtn').style.display = 'none';
+  document.getElementById('attachLyricsType').style.display = 'none';
   document.getElementById('previewModal').classList.add('active');
   try {
     var data = await pluginApi('/fetch', {
@@ -1011,7 +1093,8 @@ async function attachLyrics() {
       lyric_source: 'manual',
       lyric: previewData.lyric || '',
     };
-    if (previewData.lxlyric) attachPayload.lxlyric = previewData.lxlyric;
+    var attachType = document.getElementById('attachLyricsType').value;
+    if (previewData.lxlyric && attachType !== 'line') attachPayload.lxlyric = previewData.lxlyric;
     if (previewData.tlyric) attachPayload.tlyric = previewData.tlyric;
     if (previewData.rlyric) attachPayload.rlyric = previewData.rlyric;
     var result = await pluginApi('/attach', {
@@ -1035,30 +1118,33 @@ async function attachLyrics() {
 }
 
 async function scrapeSelected() {
-  const ids = getSelectedSongIds();
-  if (ids.length === 0) { toast('请先选择歌曲', 'error'); return; }
-  toast('开始刮削 ' + ids.length + ' 首歌曲...');
-  for (const sid of ids) {
-    const song = currentSongs.find(function(s) { return s.id === sid; });
-    if (!song) continue;
+  const songs = Array.from(selectedSongs.values());
+  if (songs.length === 0) { toast('请先选择歌曲', 'error'); return; }
+  const lyricsType = document.getElementById('batchLyricsType').value; // '' | 'line' | 'verbatim'
+  toast('开始刮削 ' + songs.length + ' 首歌曲...');
+  var okCount = 0, failCount = 0;
+  for (const song of songs) {
     try {
       const d = song.duration || 0;
       const params = new URLSearchParams({ title: song.title, artist: song.artist || '', duration: String(d < 10000 ? d * 1000 : d) });
       const searchData = await pluginApi('/search?' + params.toString());
-      if (!searchData.results || searchData.results.length === 0) continue;
-      const best = searchData.results[0];
-      const fetchData = await pluginApi('/fetch', {
-        method: 'POST',
-        body: JSON.stringify({
-          source: best.source, title: best.title, artist: best.artist,
-          album: best.album, duration: best.duration,
-          song_id: best.song_id, mid: best.mid, hash: best.hash,
-        }),
-      });
+      if (!searchData.results || searchData.results.length === 0) { failCount++; continue; }
+      let best = searchData.results[0];
+      if (lyricsType === 'verbatim') {
+        const wordSrc = searchData.results.find(function (r) { return r.source === 'qm' || r.source === 'kg'; });
+        if (wordSrc) best = wordSrc;
+      }
+      const fetchBody = {
+        source: best.source, title: best.title, artist: best.artist,
+        album: best.album, duration: best.duration,
+        song_id: best.song_id, mid: best.mid, hash: best.hash,
+      };
+      if (lyricsType) fetchBody.lyrics_type = lyricsType;
+      const fetchData = await pluginApi('/fetch', { method: 'POST', body: JSON.stringify(fetchBody) });
       await pluginApi('/attach', {
         method: 'POST',
         body: JSON.stringify({
-          song_id: sid,
+          song_id: song.id,
           lyric_source: 'scraped',
           lyric: fetchData.lyric || '',
           tlyric: fetchData.tlyric || '',
@@ -1066,11 +1152,14 @@ async function scrapeSelected() {
           lxlyric: fetchData.lxlyric || '',
         }),
       });
+      okCount++;
     } catch (e) {
+      failCount++;
       console.error('[批量] ' + song.title + ' 失败:', e);
     }
   }
-  toast('批量刮削完成');
+  toast('批量刮削完成：成功 ' + okCount + ' 首' + (failCount ? '，失败 ' + failCount + ' 首' : ''));
+  clearSelection();
   loadSongs();
 }
 
@@ -1079,6 +1168,7 @@ async function testOpenScrape() {
   var artist = document.getElementById('scrapeArtist').value.trim();
   var duration = parseInt(document.getElementById('scrapeDuration').value || '0', 10);
   var source = document.getElementById('scrapeSource').value;
+  var lyricsType = document.getElementById('scrapeLyricsType').value;
   if (!title) { toast('请输入歌曲名', 'error'); return; }
   var resultDiv = document.getElementById('quickResult');
   resultDiv.innerHTML = '<div class="loading">请求中...</div>';
@@ -1088,6 +1178,7 @@ async function testOpenScrape() {
   if (artist) body.artist = artist;
   if (duration) body.duration = duration;
   if (source) body.source = source;
+  if (lyricsType) body.lyrics_type = lyricsType;
   var token = _token();
   try {
     var resp = await fetch(url, {

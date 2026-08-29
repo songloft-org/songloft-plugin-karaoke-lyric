@@ -20,7 +20,9 @@ export function createLyricSearchHandler(engine: SourceEngine) {
     }
 
     const durationMs = Math.round(durationSec * 1000);
-    const result = await engine.scrapeBest(title, artist, durationMs);
+    // 主程序自动补全路径默认仅逐行：逐字时间轴不自动写入，
+    // 需要逐字时由用户在插件界面手动刮削。
+    const result = await engine.scrapeBest(title, artist, durationMs, undefined, 'line');
 
     if (!result) {
       return jsonResponse(null, 404);

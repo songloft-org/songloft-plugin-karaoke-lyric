@@ -26,20 +26,11 @@ function buildLrcBlock(data: LyricsData, tags?: Record<string, string>): string 
   }
   for (const line of data) {
     if (line.start === null || line.words.length === 0) continue;
-    if (line.words.length === 1) {
-      lines.push(`[${msToLrcTime(line.start)}]${line.words[0].text}`);
-    } else {
-      const timeStr = msToLrcTime(line.start);
-      const wordParts: string[] = [];
-      for (const w of line.words) {
-        if (w.start !== null && w.start !== line.start) {
-          wordParts.push(`[[${msToLrcTime(w.start)}]]${w.text}`);
-        } else {
-          wordParts.push(w.text);
-        }
-      }
-      lines.push(`[${timeStr}]${wordParts.join('')}`);
-    }
+    // 主歌词恒为逐行纯文本：逐字时间轴由 lxlyric 单独承载，
+    // 避免 [[...]] 标记写入音频标签后在其他播放器中显示为乱码。
+    const text = line.words.map(w => w.text).join('');
+    if (!text) continue;
+    lines.push(`[${msToLrcTime(line.start)}]${text}`);
   }
   return lines.join('\n');
 }

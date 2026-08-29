@@ -102,3 +102,6 @@ export interface LyricPayload {
 export interface FetchRequest extends SongInfo {
   source: Source;
 }
+
+/** 刮削时的歌词类型偏好：'line' 仅逐行（丢弃逐字时间轴），'verbatim' 保留逐字。为空时自动（有逐字则保留）。 */
+export type LyricsTypePreference = 'line' | 'verbatim';
